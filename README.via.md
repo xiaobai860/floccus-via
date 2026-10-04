@@ -529,6 +529,37 @@ git fetch origin
 
 **另一个限制要知道**：`.gitattributes` 的 `merge=keep-ours` driver 是**本机行为**（定义在 `.git/config`）。GitHub 网页上的 "Sync fork" 按钮和 PR 合并走服务端，**不执行这个 driver**。现在 `my-viasync` 是上游 `944fc3e` 的快进后继，点 Sync fork 是快进、无冲突、首页不受影响；但将来上游真改了 `README.md` 时，网页端合并仍可能报冲突——那种情况按 11.6 的办法在本地 `git merge origin/develop`（走 keep-ours，零冲突自动合并）再推。
 
+### 11.8 分支保护：默认分支禁 force push / 禁删
+
+`my-viasync` 上挂了一条 GitHub ruleset（名字 `protect-my-viasync`，id `24441483`），只含两条规则：
+
+| 规则 | 效果 |
+| --- | --- |
+| `deletion` | 任何人**不能删**这个分支（包括 GitHub 服务端） |
+| `non_fast_forward` | 任何人**不能 force push**（不能改写已推送的历史） |
+
+**没有设 `required_pull_request`、也没有 bypass 名单**——所以我们的日常流程一点没变，`git push fork develop:my-viasync` 照旧直推（实测通过：`9701f87f..2bcf70a5` 正常推送）。GitHub 网页上的 **Sync fork** 想硬改写历史也会被同一套规则挡住。
+
+**⚠️ 这条规则有一个反直觉的后果，记住**：
+
+> **一旦某个提交推上去了，就再也删不掉了。**
+
+想撤销一个已推送的提交，正确做法是**再推一个新提交把它盖掉**，不是 force push。比如误推了测试提交 `2bcf70a5`（本地已 `git reset` 掉），远端那个 sha 就永久留在历史里了，只能靠后续提交覆盖。
+
+这正是我们要的：**历史只能前进，不能被抹掉**。但也意味着推送前要多看一眼 `git status` 和 `git log --oneline -3`。
+
+**万一真要改写历史怎么办**（比如误推了含密钥的提交）：
+
+```bash
+# 先临时解除 non_fast_forward，推完立刻恢复
+curl -X DELETE -H "Authorization: token <PAT>" \
+  https://api.github.com/repos/xiaobai860/floccus-via/rulesets/24441483
+# …做你的 force push…
+# 然后重建（ruleset.json 见 git 历史，或重新 POST 一次，配置见 11.7 提到的字段）
+```
+
+删除分支还有第二道内置防线：GitHub 本身就不允许删除默认分支（报 `Cannot delete the default branch`），跟 ruleset 无关。
+
 ### 11.5 一页速查卡
 
 ```bash
@@ -551,4 +582,7 @@ VIA_FILE="…/坚果云bookmarks.html" FLOCCUS_FILE="…/floccus-…export.html"
 grep -n VIA-HOOK src/lib/serializers/Html.ts      # 必须 6 个
 grep -n tabGroups manifest.json                   # 必须在
 git diff origin/develop -- src/lib/murmurhash3.ts # 必须为空
+
+# 远端状态自查（认 sha，别信 push 输出的 "Everything up-to-date"）
+git ls-remote --heads fork | grep my-viasync
 ```
