@@ -153,6 +153,29 @@ function main() {
     console.log(`→ fork 专属文件 ${VIA_PROTECTED_FILES.length} 个，全部在位。`)
   }
 
+  // 0.5 origin 归属校验
+  // fork 的默认分支已设为 my-viasync，所以更可能有人把 origin 直接指到自己的 fork。
+  // 那样 origin/develop 就变成「上游原版」而不是「我们的最新版」，
+  // 而我们本就在 develop 上 → head === up → 脚本会判定「完全一致，没有新提交」直接退出，
+  // 静默退化成空操作，最难察觉。所以这里必须挡住。
+  try {
+    const originUrl = run('git remote get-url origin').trim()
+    const isUpstream = /floccusaddon\/floccus/i.test(originUrl)
+    const isSelfFork = /xiaobai860\/floccus-via/i.test(originUrl)
+    if (isUpstream) {
+      console.log(`→ origin 指向上游 floccusaddon/floccus，引用 ${UPSTREAM} 正确。`)
+    } else if (isSelfFork) {
+      console.log('⛔ origin 指向自己的 fork，不是上游！同步会静默失效，先修：')
+      console.log(`   当前 origin = ${originUrl}`)
+      console.log('   git remote set-url origin https://github.com/floccusaddon/floccus.git')
+      console.log('   git remote set-url fork  https://github.com/xiaobai860/floccus-via.git')
+    } else {
+      console.log(`⚠️ origin 指向意料之外的地址，请人工确认是不是上游：${originUrl}`)
+    }
+  } catch (e) {
+    console.log('（读不到 origin 地址，跳过归属校验）')
+  }
+
   const upIdx = process.argv.findIndex(
     (a, i) => a === '--upstream' && process.argv[i + 1]
   )

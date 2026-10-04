@@ -495,6 +495,40 @@ README.upstream.md -text
 
 ⚠️ **一个真实踩过的坑**：比对归档时必须吃掉行尾（`\r\n` → `\n`）。本机 `core.autocrlf=true`，上游 blob 是 LF、worktree 归档是 CRLF，直接字符串比会**永远判定"上游变了"**，每次同步都误报。脚本里已归一化，`README.upstream.md` 也标了 `-text` 防止被反复转换。你本地如果遇到归档莫名显示 modified，先 `git diff README.upstream.md` 看是不是空的——是空的就是 stat 缓存，别 `git add -A` 把它灌进历史。
 
+### 11.7 默认分支是 my-viasync（分支约定，别搞反）
+
+fork `xiaobai860/floccus-via` 的**默认分支已设为 `my-viasync`**，不是上游那个 `develop`。所以打开首页、clone 默认、`git pull` 默认拿到的都是我们这一支。
+
+**三条分支/远端各管什么**：
+
+| 名字 | 指向 | 说明 |
+| --- | --- | --- |
+| `fork/my-viasync` | 我们的 fork | **默认分支、我们的主线**，所有 via 改动都在这 |
+| `fork/develop` | 我们的 fork | 停在 `944fc3e`（上游原版），留着当"未改过的对照"，一般不动 |
+| `origin/develop` | `floccusaddon/floccus` | **上游**，同步脚本的合并目标 |
+
+**⚠️ 本地 remote 约定（搞反了同步会静默失效）**：
+
+```
+origin → floccusaddon/floccus.git   ← 上游
+fork   → xiaobai860/floccus-via.git  ← 自己
+```
+
+`node sync-upstream.js` 每次启动都会校验这条（输出 `→ origin 指向上游 floccusaddon/floccus，引用 origin/develop 正确`）。如果 `origin` 指到自己的 fork，它会直接报 ⛔ 并给出修正命令——因为那种情况下 `origin/develop` 就是上游原版，而我们本就在它之上，脚本会判"完全一致"直接退出，**看起来正常，实际什么都没同步**。
+
+**clone 这个 fork 的正确姿势**（clone 完 `origin` 默认是自己，得手动对调）：
+
+```bash
+git clone https://github.com/xiaobai860/floccus-via.git
+cd floccus-via
+git remote rename origin fork                      # 自己的改名 fork
+git remote add origin https://github.com/floccusaddon/floccus.git
+git fetch origin
+# 之后：node sync-upstream.js   →  必须看到「origin 指向上游」才正常
+```
+
+**另一个限制要知道**：`.gitattributes` 的 `merge=keep-ours` driver 是**本机行为**（定义在 `.git/config`）。GitHub 网页上的 "Sync fork" 按钮和 PR 合并走服务端，**不执行这个 driver**。现在 `my-viasync` 是上游 `944fc3e` 的快进后继，点 Sync fork 是快进、无冲突、首页不受影响；但将来上游真改了 `README.md` 时，网页端合并仍可能报冲突——那种情况按 11.6 的办法在本地 `git merge origin/develop`（走 keep-ours，零冲突自动合并）再推。
+
 ### 11.5 一页速查卡
 
 ```bash
