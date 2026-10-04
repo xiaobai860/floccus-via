@@ -610,6 +610,13 @@ git push origin develop            # ❌ 已阻断，会失败
 
 推之前习惯性看一眼 `git remote -v`：写远程的名字应该是 `fork` → `xiaobai860/floccus-via`。**记住往 `fork` 推，不往 `origin` 推。**
 
+> ⚠️ **换机器 clone 后这个阻断会丢失！** push URL 记在 `.git/config` 里，**不随仓库走**。
+> 新机器上第一次用之前先补上：
+> ```bash
+> git remote set-url --push origin "DISABLED://never-push-to-upstream-floccusaddon"
+> ```
+> 忘了也不要紧——`sync-upstream.js` 每次启动会检查这件事，发现没阻断会打 `⛔⛔⛔` 并把命令打给你。
+
 ### 11.5 一页速查卡
 
 ```bash
@@ -632,6 +639,10 @@ VIA_FILE="…/坚果云bookmarks.html" FLOCCUS_FILE="…/floccus-…export.html"
 grep -n VIA-HOOK src/lib/serializers/Html.ts      # 必须 6 个
 grep -n tabGroups manifest.json                   # 必须在
 git diff origin/develop -- src/lib/murmurhash3.ts # 必须为空
+
+# 红线自查：绝不能往上游提 PR
+node sync-upstream.js 2>&1 | head -2
+#   必须看到「未向上游提交任何 PR」+「origin 的 push 已阻断」
 
 # 远端状态自查（认 sha，别信 push 输出的 "Everything up-to-date"）
 git ls-remote --heads fork | grep my-viasync
