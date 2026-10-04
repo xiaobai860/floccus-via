@@ -461,6 +461,40 @@ node dist/via-check/bundle.js     # 26 项全 PASS
 - **`dist/` 里的 `via-check` / `official-check` / `via-check-tsc` 三个目录**是校验产物，被 `pack-for-edge.js` 的 `SKIP_DIRS` 挡在包外，本地占 6 MB 属正常。
 - 我们新增的全部文件（`HtmlVia.ts`、`check-*.js`、`pack-*.js`、`src/entries/via-check.js`、`webpack.via-check.js`、**本文件**）**上游都不存在 → 永远不冲突**，唯一要盯的是别被误删。
 
+### 11.6 根 README 导引卡：GitHub 首页永远是中文的
+
+打开这个 fork 的仓库首页，看到的是**我们前置的中文导引卡**（常说的"门面"），不是上游那份英文 README。
+
+```
+README.md            ← GitHub 首页显示这个：导引卡 + 上游原文（keep-ours 锁死，上游改也顶不掉）
+README.upstream.md   ← 上游 README 的归档副本，用来 diff 上游改了没
+README.via.md        ← 完整中文说明（本文件）
+README.upstream.md / README.md 的原文归档
+patch-readme-head.js ← 生成导引卡的脚本（幂等）
+```
+
+**为什么没直接把 README.md 换成导引卡**：上游 README 里的安装说明、徽章、捐赠链接都有价值，硬覆盖就永久失去可追溯性。所以做法是"前置导引卡 + 保留原文"，两边都要。
+
+**怎么保证同步上游后首页不变回去**？`.gitattributes` 里挂了 merge driver：
+
+```gitattributes
+README.md merge=keep-ours
+README.upstream.md -text
+```
+
+- `merge=keep-ours` → 任何一次 `git merge origin develop`，`README.md` 都取本地版本，**零冲突自动合并**，上游英文永远上不来。
+- 实测过：造一个"上游真改了 README"的分叉分支来合并，导引卡完好、上游那行文案一次都没混进来。
+- driver 是 `touch %A`（不是 `cp %A %A` —— 后者自己读自己会报错，git 会当成合并失败，这个坑踩过）。driver 实体在 `.git/config`，换机器 clone 后要补一句：
+
+  ```bash
+  git config merge.keep-ours.driver "touch %A"
+  git config merge.keep-ours.name "always keep our README.md"
+  ```
+
+**上游 README 更新了怎么办**：跑 `node sync-upstream.js --archive-readme` 刷新归档，然后 `git diff README.upstream.md` 看上游改了什么，再决定要不要把新内容并进 `README.md`（导引卡末尾那句"完整说明"不用手改，脚本自动管）。不带参数跑只体检、不写文件。
+
+⚠️ **一个真实踩过的坑**：比对归档时必须吃掉行尾（`\r\n` → `\n`）。本机 `core.autocrlf=true`，上游 blob 是 LF、worktree 归档是 CRLF，直接字符串比会**永远判定"上游变了"**，每次同步都误报。脚本里已归一化，`README.upstream.md` 也标了 `-text` 防止被反复转换。你本地如果遇到归档莫名显示 modified，先 `git diff README.upstream.md` 看是不是空的——是空的就是 stat 缓存，别 `git add -A` 把它灌进历史。
+
 ### 11.5 一页速查卡
 
 ```bash
