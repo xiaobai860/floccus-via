@@ -103,23 +103,23 @@ Couldn't load icon icons/logo.png specified in action.
 
 ### 2. 在扩展里填（Via 兼容账号）
 
-选项页 → 添加账号 → 适配器选 **WebDAV** → **勾上「Via 浏览器兼容」**（这一步是关键，勾完配置会自动调整）：
+选项页 → 添加账号 → 适配器选 **WebDAV**，向导会走 5 步：
 
-| 选项 | 填什么 |
-| --- | --- |
-| 账号标签 | 随手起名，如「手机 Via」 |
-| **Via 浏览器兼容** | ✅ **勾上**（见下面说明） |
-| **书签文件** | 勾上后**自动填成 `Via/bookmarks.html`**，不用自己改 |
-| WebDAV URL | 坚果云给的地址，结尾是 `Via/bookmarks.html` |
-| 用户名 | 坚果云账号 / 邮箱 |
-| 密码 | 上面生成的**应用密码** |
-| 文件类型 | 勾上后这一栏**会消失**（固定 HTML，想改也改不了） |
+| 步骤 | 内容 | Via 相关的操作 |
+| --- | --- | --- |
+| 1 | 选择适配器 | 选 **WebDAV 分类** |
+| 2 | 配置标签 | 随手起名，如「手机 Via」 |
+| 3 | **同步文件夹设置** | ⭐ **在这里勾「Via 浏览器兼容」**（在「预设服务器」和「WebDAV URL」之间），填 URL / 用户名 / 密码 |
+| 4 | 文件名与格式 | *书签文件* 已自动填好、*文件类型* 已锁定不用管 |
+| 5 | 同步选项 | 保持默认 |
 
-**勾上「Via 浏览器兼容」之后发生什么**：
+**第 3 步里勾上「Via 浏览器兼容」之后，同一页会发生三件事**：
 
-- *书签文件* 自动填成 `Via/bookmarks.html`（这就是 Via 自己的目录布局）
-- *文件类型* 选择整块**消失**，格式锁定为 HTML（XBEL 是 floccus 自己的格式，Via 读不了）
-- *密码短语* 从来不出现（向导页本来就没有这一项，设置页也会因为是 Via 账号而藏起来）——填了会让整个文件变成密文，Via 直接认不出来
+- **「密码短语」输入框立刻消失** —— 这一条是必须的：填了密码整个文件会被加密成密文，Via 浏览器根本读不出来
+- *书签文件*（第 4 步）自动填成 `Via/bookmarks.html`（Via 自己的目录布局）
+- *文件类型*（第 4 步）整块**消失**，格式锁定为 HTML（XBEL 是 floccus 自己的格式，Via 读不了）
+
+> 勾选框特意放在 URL **之前**、密码短语**之后靠上**的位置：它决定了这套配置是「Via 模式」还是「官方模式」，是整个表单的前提，不该藏在最下面。
 
 **这个勾选只能做一次**。开启后想换回官方格式（XBEL / 可加密）**没有开关可关**，唯一办法是**删掉这个账号重新建一个不勾的**。原因见 [11.11 章](README.via.md)：开启需要三件事同时改（路径、格式、加密），允许中途切换就会产生"格式和实际内容对不上"的中间态，同步必失败。
 
@@ -556,7 +556,7 @@ node dist/via-check/bundle.js     # 28 项全 PASS
 | **P1-3** | `src/lib/adapters/WebDav.ts` | Via 的两个配置挂在这：`via_compatible` / `via_root_folder`（51、53 行的默认值）+ `getHtmlSerializerOptions()`（96 行）里的短路 `if (!data.via_compatible) return { viaCompatible: false }` | 上游改了 `getDefaultValues` / `getHtmlSerializerOptions` 的签名 | 把我们的两段并回去。**这条短路必须还在**，否则不开 Via 开关也会走兼容路径 |
 | **P1-4** | `manifest.json` | `version` 冲突是必然的（上游发版会改，`name` 是我们自己的） | `version` 跟 `name` 同时出现在 diff 里 | 保留上游版本号 + 我们的 `name: floccus-via`；顺手确认 **`tabGroups` 权限还在**（是我们补的，官方 Chrome manifest 有，缺了标签页分组整片拿不到） |
 | **P1-5** | `src/ui/components/OptionsWebdav.vue` | Via 卡片（`v-if="via_compatible"` 整块条件显示 + 锁定开关 + 说明 + 根文件夹输入框），以及密码块/格式块的 `v-if="!via_compatible"` | `grep -n "VIA-HIDE\|VIA-NOTE" src/ui/components/OptionsWebdav.vue` 应各有 1 处；`grep -c 'v-if="!via_compatible"' ` 应为 **2** | 补回这 4 处。**特别注意别把 `v-if="via_compatible"` 改成无条件**——那会让普通 WebDAV 账号也看到 Via 卡片 |
-| **P1-5b** | `src/ui/views/NewAccount.vue` | 向导页的 Via 勾选框 + `onViaCompatibleChange()` 三联动预填（路径→`Via/bookmarks.html`、格式→html）+ `onCreate` 里那行 `via_compatible: true` 白名单 | `grep -n "VIA-COMPAT" src/ui/views/NewAccount.vue` 应有 2 处 | ⚠️ **最易踩空的一处**：上游若重构 `onCreate` 的传参区（它本来就是白名单式 `...(条件 && {字段})`），我们那行会被冲掉 → **勾选只停在界面上、存不进账号**，且**不报任何错**，表现是设置页两块没隐藏、Via 不生效。改完务必实地建一个新号验证 |
+| **P1-5b** | `src/ui/views/NewAccount.vue` | 向导页的 Via 勾选框 + `onViaCompatibleChange()` 三联动预填（路径→`Via/bookmarks.html`、格式→html）+ `onCreate` 里那行 `via_compatible: true` 白名单 | `grep -c "VIA-COMPAT" src/ui/views/NewAccount.vue` 应为 5（勾选框 1 + 第4步说明 1 + data 1 + 方法 1 + onCreate 1） | ⚠️ **最易踩空的一处**：上游若重构 `onCreate` 的传参区（它本来就是白名单式 `...(条件 && {字段})`），我们那行会被冲掉 → **勾选只停在界面上、存不进账号**，且**不报任何错**，表现是设置页两块没隐藏、Via 不生效。改完务必实地建一个新号验证 |
 | **P1-5c** | `_locales/*` 里的 `DescriptionViaCompatibleNoEncrypt` / `DescriptionViaLocked` | 新增文案，上游没有 | `node add-via-locale.js` 幂等补齐（只新增不覆盖） | ⚠️ 目录名是 **`zh-Hans`（连字符）**，不是 `zh_Hans`；写错会被静默跳过 |
 | **P1-6** | `src/lib/native/I18n.ts` | 我们改了回退链：逐 key 回退 + 同语系借道（`zh_CN`/`zh-Hans` 缺词借 `zh`） | 上游动 I18n 会冲突 | 保留 `getMessageChain` 与 `zh-Hans` 借道，否则 Via 那几个新文案会露英文 |
 | **P1-7** | `src/lib/adapters/Caching.ts` | `WebDav.ts:99` 从 `this.bookmarksCache.viaRootName` 读根文件夹名。上游重构缓存结构 → 根名读不到 | 表现是 Via 端"单一根包装文件夹"识别失效（手机端顶层对不上电脑端） | 把 `viaRootName` 挂回新的缓存对象上 |
@@ -805,7 +805,7 @@ Via 只能读**未加密的 Netscape 格式 HTML**。如果给 Via 账号加密�
 
 | 界面位置 | 行为 |
 | --- | --- |
-| **新建账号向导**（WebDAV） | 勾「Via 浏览器兼容」→ 路径预填 `Via/bookmarks.html`、格式锁定 HTML、格式选择框消失 |
+| **新建账号向导 · 第 3 步**（服务器设置） | 勾「Via 浏览器兼容」→ **同屏的「密码短语」立刻消失**；第 4 步的路径预填 `Via/bookmarks.html`、格式锁定 HTML、格式选择框消失 |
 | **账号设置页（Via 账号）** | 密码短语、文件格式两块**隐藏**；Via 卡片可见但开关锁定；附说明 |
 | **账号设置页（普通 WebDAV）** | 密码短语、文件格式**照常显示**，且**看不到 Via 卡片**（与官方原版一致） |
 | **其它适配器**（Git / Google Drive / Dropbox…） | 完全是官方原版设置页，无任何 Via 元素 |
