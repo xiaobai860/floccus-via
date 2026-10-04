@@ -461,6 +461,37 @@ node dist/via-check/bundle.js     # 26 项全 PASS
 - **`dist/` 里的 `via-check` / `official-check` / `via-check-tsc` 三个目录**是校验产物，被 `pack-for-edge.js` 的 `SKIP_DIRS` 挡在包外，本地占 6 MB 属正常。
 - 我们新增的全部文件（`HtmlVia.ts`、`check-*.js`、`pack-*.js`、`src/entries/via-check.js`、`webpack.via-check.js`、**本文件**）**上游都不存在 → 永远不冲突**，唯一要盯的是别被误删。
 
+### 11.5 一页速查卡
+
+```bash
+# 同步前：体检，只读
+node sync-upstream.js
+
+# 同步中：git merge origin develop
+# 同步后：撞到 11.3 表格里任一文件 → 逐项过
+
+# 六步自检（顺序别乱）
+npx gulp build && node check-official-compat.js && node check-i18n.js \
+  && node check-zip.js && node audit-extension.js && node pack-for-edge.js
+
+# Via 回归（必须带环境变量）
+npx webpack --config webpack.via-check.js
+VIA_FILE="…/坚果云bookmarks.html" FLOCCUS_FILE="…/floccus-…export.html" \
+  node dist/via-check/bundle.js
+
+# 冲突定位
+grep -n VIA-HOOK src/lib/serializers/Html.ts      # 必须 6 个
+grep -n tabGroups manifest.json                   # 必须在
+git diff origin/develop -- src/lib/murmurhash3.ts # 必须为空
+
+# 红线自查：绝不能往上游提 PR
+node sync-upstream.js 2>&1 | head -2
+#   必须看到「未向上游提交任何 PR」+「origin 的 push 已阻断」
+
+# 远端状态自查（认 sha，别信 push 输出的 "Everything up-to-date"）
+git ls-remote --heads fork | grep my-viasync
+```
+
 ### 11.6 根 README 导引卡：GitHub 首页永远是中文的
 
 打开这个 fork 的仓库首页，看到的是**我们前置的中文导引卡**（常说的"门面"），不是上游那份英文 README。
@@ -544,7 +575,7 @@ git fetch origin
 
 > **一旦某个提交推上去了，就再也删不掉了。**
 
-想撤销一个已推送的提交，正确做法是**再推一个新提交把它盖掉**，不是 force push。比如误推了测试提交 `2bcf70a5`（本地已 `git reset` 掉），远端那个 sha 就永久留在历史里了，只能靠后续提交覆盖。
+想撤销一个已推送的提交，正确做法是**再推一个新提交把它盖掉**，不是 force push。比如误推了测试提交 `2bcf70a5`（本地已 `git add` 回退掉），远端那个 sha 就永久留在历史里了，只能靠后续提交覆盖。
 
 这正是我们要的：**历史只能前进，不能被抹掉**。但也意味着推送前要多看一眼 `git status` 和 `git log --oneline -3`。
 
@@ -617,33 +648,22 @@ git push origin develop            # ❌ 已阻断，会失败
 > ```
 > 忘了也不要紧——`sync-upstream.js` 每次启动会检查这件事，发现没阻断会打 `⛔⛔⛔` 并把命令打给你。
 
-### 11.5 一页速查卡
+### 11.10 推送时别再弹那个英文小窗
+
+如果你以前每次 `git push` 都弹一个 **Credential Helper Selector** 小窗（选项 `<no helper> / manager / wincred`、界面是英文、小屏显示不全得全屏才能点），那不是你操作有问题，是环境默认配置在作怪。
+
+**根因**：git 推送成功后要**存凭据**，这一步会调用 credential helper。而 WorkBuddy 内置的 PortableGit 在系统级 `etc/gitconfig` 里预置了 `helper = helper-selector`——就是那个弹窗。它每次都弹，跟你以前有没有选过 "manager" 无关（那条记录在用户级，系统级那行仍会先触发）。
+
+**已在本机禁用**（`credential.helper` 设为空值——git 规则里空值会重置整条 helper 链，正好压掉系统级那行）：
 
 ```bash
-# 同步前：体检，只读
-node sync-upstream.js
-
-# 同步中：git merge origin develop
-# 同步后：撞到 11.3 表格里任一文件 → 逐项过
-
-# 六步自检（顺序别乱）
-npx gulp build && node check-official-compat.js && node check-i18n.js \
-  && node check-zip.js && node audit-extension.js && node pack-for-edge.js
-
-# Via 回归（必须带环境变量）
-npx webpack --config webpack.via-check.js
-VIA_FILE="…/坚果云bookmarks.html" FLOCCUS_FILE="…/floccus-…export.html" \
-  node dist/via-check/bundle.js
-
-# 冲突定位
-grep -n VIA-HOOK src/lib/serializers/Html.ts      # 必须 6 个
-grep -n tabGroups manifest.json                   # 必须在
-git diff origin/develop -- src/lib/murmurhash3.ts # 必须为空
-
-# 红线自查：绝不能往上游提 PR
-node sync-upstream.js 2>&1 | head -2
-#   必须看到「未向上游提交任何 PR」+「origin 的 push 已阻断」
-
-# 远端状态自查（认 sha，别信 push 输出的 "Everything up-to-date"）
-git ls-remote --heads fork | grep my-viasync
+git config --global --unset-all credential.helperselector.selected
+git config --global credential.helper ""     # 所有仓库生效
 ```
+
+**验证过的现象**：改完之后——无凭据推送直接报 `Authentication failed`（不再有任何弹窗）；带 token 的真实推送（`77b4ed48..1bfb45ff`）一次成功、**全程零弹窗**。
+
+**副作用（要知道）**：凭据助手被完全禁用，以后**任何** git 操作如果没带凭据会直接失败，不会再有交互式弹窗兜底。这对我们没影响——项目所有推送都用「token 内联 + 后台任务」的方式。但你如果要**自己在终端里** `git push`，得手动带 token（`https://<user>:<token>@github.com/...`）或改配 SSH key。
+
+**为什么不汉化那个窗口**：GCM 二进制里没有中文语言包（`zh-CN` 资源数为 0），而且它是第三方程序，不该去改。禁用之后**根本不会弹窗**，比汉化更干净。
+
