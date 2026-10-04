@@ -1,0 +1,14 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# floccus-via 的 fork 专属保护
+#
+# 根 README.md 是 GitHub 仓库首页文档，上游 floccus 随时可能改它。
+# 我们在最前面插了一段中文导引卡（见 patch-readme-head.js），这里把它锁死：
+# 以后 git merge 上游时，README.md 永远取「 ours 」版本，不会被上游英文版覆盖。
+#
+# 上游原版 README 另存为 README.upstream.md（由 sync-upstream.js 自动归档），
+# 所以上游改了 README 我们也跟得到，只是不覆盖我们自己的门面。
+#
+# driver 实体定义在 .git/config 的 [merge "keep-ours"]，clone 到别的机器时
+# 那台机器需要自己补一句：git config merge.keep-ours.driver "cp %A %A"
+# ─────────────────────────────────────────────────────────────────────────────
+README.md merge=keep-ours
