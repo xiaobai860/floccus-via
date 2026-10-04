@@ -574,6 +574,42 @@ curl -X DELETE -H "Authorization: token <PAT>" \
 
 删除分支还有第二道内置防线：GitHub 本身就不允许删除默认分支（报 `Cannot delete the default branch`），跟 ruleset 无关。
 
+### 11.9 红线：绝不能向上游提交任何东西
+
+> **floccus-via 是个人 fork。所有 Via 改动只留在自己这边，一个 PR / Issue 都不往 `floccusaddon/floccus` 提。**
+
+这不是"尽量避免"，是**技术上已经堵死**的：
+
+**① 上游的 push 地址已被阻断**（`git remote set-url --push`）：
+
+```
+origin  https://github.com/floccusaddon/floccus.git (fetch)   ← 能拉
+origin  DISABLED://never-push-to-upstream-floccusaddon (push)  ← 推不动
+```
+
+实测 `git push origin develop` → `fatal: remote helper 'DISABLED' aborted session`。**手滑也推不上去**，而 `git fetch` 照常能用、同步脚本不受影响。
+
+**② `sync-upstream.js` 每次启动都会自查**并在控制台打印：
+
+```
+→ ✅ 未向上游提交任何 PR（已核查上游 100 个 PR，无 xiaobai860）
+→ origin 的 push 已阻断（DISABLED://...），手滑也推不上去。
+```
+
+如果哪天它打出 `⛔⛔⛔ 检测到你向上游提了 N 个 PR`，立刻去这个地址关掉：
+`https://github.com/floccusaddon/floccus/pulls?q=is%3Apr+author%3Axiaobai860`
+
+查不到时它会显式说"**无法确认**"并给出上面的手动核对地址——**不会假装安全**（这是特意设计的：假阴性比不检查更危险）。
+
+**③ 唯一允许的推送目标只有 `fork`**：
+
+```bash
+git push fork develop:my-viasync   # ✅ 唯一正确的推送方式
+git push origin develop            # ❌ 已阻断，会失败
+```
+
+推之前习惯性看一眼 `git remote -v`：写远程的名字应该是 `fork` → `xiaobai860/floccus-via`。**记住往 `fork` 推，不往 `origin` 推。**
+
 ### 11.5 一页速查卡
 
 ```bash

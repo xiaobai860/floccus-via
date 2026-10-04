@@ -24,6 +24,41 @@ const REMOTE = 'origin'
 const BASE_BRANCH = 'develop'
 const UPSTREAM = `${REMOTE}/${BASE_BRANCH}`
 
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ *  红线：本项目是 floccus 的个人 fork，改动永远只回写自己的 fork。
+ *  **绝不向上游 floccusaddon/floccus 提交 PR、Issue 或任何分支。**
+ *  fork 的存在意义就是把这些 Via 改动留在自己这边；往上游提 PR 既不被需要，
+ *  也会给上游维护者添麻烦。下面这条断言就是防止手滑的闸门。
+ * ═══════════════════════════════════════════════════════════════════
+ */
+const FORBIDDEN_UPSTREAM = 'floccusaddon/floccus'
+const SELF_REPO = 'xiaobai860/floccus-via'
+
+/** 检查有没有把 PR/Issue 提向上游（只读探测，不改任何东西） */
+function checkNoUpstreamPR() {
+  const res = { ok: false, total: null, mine: null }
+  try {
+    // 公开仓库的 pulls 列表无需鉴权即可读；这里只读，绝不写
+    const raw = execSync(
+      `curl -s --max-time 20 "https://api.github.com/repos/${FORBIDDEN_UPSTREAM}/pulls?state=all&per_page=100"`,
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 25000 }
+    )
+    const list = JSON.parse(raw)
+    if (!Array.isArray(list)) {
+      res.total = null
+      res.mine = null
+      return res
+    }
+    res.ok = true
+    res.total = list.length
+    res.mine = list.filter((p) => p.user && p.user.login === 'xiaobai860').length
+  } catch (e) {
+    res.ok = false
+  }
+  return res
+}
+
 /** 我为了 Via 兼容改动的全部文件（相对仓库根） */
 const VIA_PATCH_FILES = [
   // Via 插槽本体：纯新增文件，上游没有，永远不会起冲突，列在这里只是为了体检时
@@ -142,6 +177,34 @@ function checkUpstreamReadme(upRef, doWrite) {
 
 function main() {
   const asJson = process.argv.includes('--json')
+
+  // 0. 红线检查：我们绝不能向上游提 PR
+  const pr = checkNoUpstreamPR()
+  if (!pr.ok) {
+    // ⚠️ 查不到 ≠ 没问题。这里必须显式说"没验成"，不能让人误读成"安全"
+    console.log('⚠️  上游 PR 核查没跑成（网络/接口问题），**无法确认是否有误提的 PR**')
+    console.log(`   请手动打开核对：https://github.com/${FORBIDDEN_UPSTREAM}/pulls?q=is%3Apr+author%3Axiaobai860`)
+  } else if (pr.mine > 0) {
+    console.log(`⛔⛔⛔ 检测到你向上游 ${FORBIDDEN_UPSTREAM} 提了 ${pr.mine} 个 PR！`)
+    console.log('   这是本项目最严重的问题，请立刻到下列地址关闭：')
+    console.log(`   https://github.com/${FORBIDDEN_UPSTREAM}/pulls?q=is%3Apr+author%3Axiaobai860`)
+  } else {
+    console.log(`→ ✅ 未向上游提交任何 PR（已核查上游 ${pr.total} 个 PR，无 xiaobai860）`)
+  }
+
+  // 0.2 origin 的 push 地址必须已被阻断（防止手滑往上游推）
+  try {
+    const pushUrl = run(`git remote get-url --push ${REMOTE}`).trim()
+    if (/^https?:/.test(pushUrl)) {
+      console.log(`⛔⛔⛔ ${REMOTE} 的 push 地址还指着上游（${pushUrl}）！`)
+      console.log('   万一 git push 就会写进上游仓库。立刻执行：')
+      console.log(`   git remote set-url --push ${REMOTE} "DISABLED://never-push-to-upstream-floccusaddon"`)
+    } else {
+      console.log(`→ ${REMOTE} 的 push 已阻断（${pushUrl}），手滑也推不上去。`)
+    }
+  } catch (e) {
+    console.log('（读不到 push 地址，跳过阻断检查）')
+  }
 
   // 0. 保护文件在不在（fork 专属，上游没有，真少一个只能是误操作）
   const missing = VIA_PROTECTED_FILES.filter((f) => !fs.existsSync(f))
