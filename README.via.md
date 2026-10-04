@@ -141,7 +141,7 @@ Couldn't load icon icons/logo.png specified in action.
 > 顶层目录、或 Via 版本升级改了导出结构），那套机制会自动认出根名字并原样包回去，丢掉了就会
 > **静默丢掉那层包装**。28 项回归里有一整组专门覆盖它，改动时别碰。
 
-> 这一整块界面是**中文**的。若你看到某几行是英文，说明那个词条没进当前语言包 —— 中文环境走的是 `zh_CN` 语言包，本分支已把它和 `zh` 对齐到 0 缺失（`node check-i18n.js` 可复验）。
+> 这一整块界面是**中文**，而且是直接写死在代码里的（`src/ui/via-text.ts`），**不经过语言包**。所以无论界面语言设成什么，Via 兼容区永远显示中文，不会出现"某几行变英文"的情况。
 
 ### 4. 选同步根：整个书签树
 
@@ -270,12 +270,9 @@ Via 是双向的：它既下载 `bookmarks.html` 导入，也会把自己改动�
 | `src/lib/adapters/WebDav.ts` | 新增 `via_compatible` / `via_root_folder` 两个选项；按 Via 选项选择序列化参数；`createHTML` 在 via 模式输出 Via 风格文件头 |
 | `src/lib/Tree.ts` | `Folder` 增加 `viaRootName`，回写时把根文件夹名字原样包回去 |
 | `src/ui/components/OptionsWebdav.vue` | 新增「Via 浏览器兼容」设置卡片 |
-| `_locales/en/messages.json` | 新增 5 个英文案键（Via 兼容卡片用） |
-| `_locales/zh/messages.json` | 5 条简体中文 Via 文案 |
-| `_locales/zh_CN/messages.json`、`_locales/zh-Hans/messages.json` | **补齐 27 条**。**关键**：`src/ui/index.js` 用 `navigator.languages` 选语言，中文 Edge 命中的是 `zh_CN` 而不是 `zh`，可 `zh_CN` 是上游落后的一版，缺 Via 那 5 条和「标签 / 标题 / 排序依据 / 显示密码…」等 16 条 —— 缺的会逐 key 回退英文，界面上就冒出一整块英文 |
-| `_locales/zh_TW/messages.json` | 补齐 31 条繁体文案 |
-| `src/lib/native/I18n.ts` | 回退链由「当前包 → 英文」改成「当前包 → 同语系兜底包 → 英文」并**逐 key** 查找。现在 `zh_CN` / `zh-Hans` 缺词条会借道 `zh`，只有 `zh_TW` 直接回退英文（不把简体塞给繁体用户），彻底避免"某个语言包落后一版就整块露英文" |
-| `check-i18n.js` | 文案覆盖自检：扫源码里所有 `t('Xxx')` 引用，逐语言包比对该 key 是否存在，并单独列出中文包缺口。**新增（本次）** |
+| `src/ui/via-text.ts` | **fork 专属新文件**：Via 兼容的全部中文文案硬编码在这里（标题 / 勾选框标签 / 说明 / 已启用说明 / 向导页标签与提示）。这样 `_locales` 五个语言包可以**完全保持上游原样、零改动**，语言包彻底退出我们的改动面。想做多语言时在这个对象里按 locale 补字段即可，调用处改成 `VIA_TEXT.title[locale]`，仍然不碰 `_locales`。**新增（本次）** |
+| `src/lib/native/I18n.ts` | 回退链由「当前包 → 英文」改成「当前包 → 同语系兜底包 → 英文」并**逐 key** 查找。现在 `zh_CN` / `zh-Hans` 缺词条会借道 `zh`，只有 `zh_TW` 直接回退英文（不把简体塞给繁体用户）。**这条回退链是我们敢让语言包零改动的前提** —— 它实测能兜住上游 `zh_CN` / `zh-Hans` 缺失的全部 16 条 |
+| `check-i18n.js` | 文案覆盖自检：扫源码里所有 `t('Xxx')` 引用，逐语言包比对该 key 是否存在。**懂得了回退链规则**：`zh_CN` / `zh-Hans` 缺但 `zh` 能兜住的词条算「回退兜底」不算缺口；`zh_TW` 不借道简体包所以它的缺口是真缺口。**新增硬约束**：末尾逐个核对 `en/zh/zh_CN/zh-Hans/zh_TW` 与上游是否逐字节一致，任何偏离直接报 FAIL |
 | `sync-upstream.js` | 跟上游前的冲突体检： fetch 后列出上游新提交/新文件，交叉比对本分支改过的 13 个文件，再用 `git merge-tree` dry-run 提前报真冲突文件，最后给出合并后固定六步。**新增（本次）** |
 | `check-official-compat.js` + `webpack.official-check.js` + `src/entries/official-compat.js` | 官方格式对等回归：**不开 Via 开关时，输出必须和官方 floccus 5.11.1 逐字节一致**。指纹写死在脚本里（`33ea98f5…` / 39147 字节）。上游一改官方序列化格式，或我们的改动不小心漫过 via 分支污染了官方路径，这脚本会立刻报 FAIL。**新增（本次）** |
 | `manifest.json` | 删掉上游的 `"default_locale": "en"`。规范规定声明它就必须配套 `_locales` 目录，而本包刻意不带 `_locales`（`_` 开头目录名会被拖 zip 安装拒绝）。运行时一次都没调 `chrome.i18n`，文案已编译进 JS，删掉这个字段不影响界面语言 |
@@ -565,7 +562,7 @@ node dist/via-check/bundle.js     # 28 项全 PASS
 | **P1-4** | `manifest.json` | `version` 冲突是必然的（上游发版会改，`name` 是我们自己的） | `version` 跟 `name` 同时出现在 diff 里 | 保留上游版本号 + 我们的 `name: floccus-via`；顺手确认 **`tabGroups` 权限还在**（是我们补的，官方 Chrome manifest 有，缺了标签页分组整片拿不到） |
 | **P1-5** | `src/ui/components/OptionsWebdav.vue` | Via 卡片（`v-if="via_compatible"` 整块条件显示 + 锁定开关 + 说明），以及密码块/格式块的 `v-if="!via_compatible"`。**根文件夹名输入框已刻意删除，别加回来**（真实文件是三平级，填了反而会多包一层） | `grep -n "VIA-HIDE\|VIA-NOTE" src/ui/components/OptionsWebdav.vue` 应各有 1 处；`grep -c 'v-if="!via_compatible"'` 应为 **2** | 补回这几处。**特别注意别把 `v-if="via_compatible"` 改成无条件**——那会让普通 WebDAV 账号也看到 Via 卡片 |
 | **P1-5b** | `src/ui/views/NewAccount.vue` | **第 3 步（服务器设置，WebDAV URL 之前）**的 Via 勾选框 + **同屏密码短语**的 `v-if="!via_compatible"` + `onViaCompatibleChange()` 三联动预填（路径→`Via/bookmarks.html`、格式→html）+ `onCreate` 里那行 `via_compatible: true` 白名单 | `grep -c "VIA-COMPAT" src/ui/views/NewAccount.vue` 应为 5（勾选框 1 + 第4步说明 1 + data 1 + 方法 1 + onCreate 1）；密码短语的 `v-if="!via_compatible"` 应为 1 处 | ⚠️ **最易踩空的一处**：上游若重构 `onCreate` 的传参区（它本来就是白名单式 `...(条件 && {字段})`），我们那行会被冲掉 → **勾选只停在界面上、存不进账号**，且**不报任何错**，表现是设置页两块没隐藏、Via 不生效。改完务必实地建一个新号验证 |
-| **P1-5c** | `_locales/*` 里的 `DescriptionViaCompatibleNoEncrypt` / `DescriptionViaLocked` | 新增文案，上游没有 | `node add-via-locale.js` 幂等补齐（只新增不覆盖） | ⚠️ 目录名是 **`zh-Hans`（连字符）**，不是 `zh_Hans`；写错会被静默跳过 |
+| **P1-5c** | `src/ui/via-text.ts` | Via 全部中文文案**硬编码**在这个 fork 专属文件里（上游没有它 → 冲突面恒为 0） | `grep -c "wizardHint\|lockedNote" src/ui/via-text.ts` 应为 1 | ⚠️ **不要再往 `_locales` 加 Via 词条** —— 五个语言包保持上游原样、零改动是本分支的硬约束，`check-i18n.js` 末尾会逐包核对，与上游不一致直接 FAIL。万一真要改文案，只改 `via-text.ts` |
 | **P1-6** | `src/lib/native/I18n.ts` | 我们改了回退链：逐 key 回退 + 同语系借道（`zh_CN`/`zh-Hans` 缺词借 `zh`） | 上游动 I18n 会冲突 | 保留 `getMessageChain` 与 `zh-Hans` 借道，否则 Via 那几个新文案会露英文 |
 | **P1-7** | `src/lib/adapters/Caching.ts` | `WebDav.ts:99` 从 `this.bookmarksCache.viaRootName` 读根文件夹名。上游重构缓存结构 → 根名读不到 | 表现是 Via 端"单一根包装文件夹"识别失效（手机端顶层对不上电脑端） | 把 `viaRootName` 挂回新的缓存对象上 |
 | **P1-8** | `src/lib/Tree.ts` | 我们只加了可选字段 `viaRootName?: string`（410 行） | — | 可选字段，上游怎么改都接得上，基本不冲突 |
@@ -837,7 +834,13 @@ grep -n "via_compatible" src/lib/adapters/WebDav.ts  # 兜底必须还在
 
 **为什么向导页的 `onCreate` 里有那一行 `...(this.via_compatible && {...})`**：`onCreate` 是白名单式传参，每个字段都要显式放行。不写这一句，勾选只停在界面上、**存不进账号**，设置页就永远读不到 `via_compatible`。这是本方案最容易踩空的一处，改动时务必带上。
 
-新增文案（`node add-via-locale.js` 可重复执行，幂等，只新增不覆盖）：
-`DescriptionViaCompatibleNoEncrypt`（向导提示）、`DescriptionViaLocked`（设置页说明）。
+Via 文案现在**不走语言包**，全部硬编码在 `src/ui/via-text.ts`（fork 专属文件）：
 
-> ⚠️ 语言包目录名是 **`zh-Hans`（连字符）**，写成 `zh_Hans` 会被静默跳过。脚本里已注明。
+```ts
+import { VIA_TEXT } from '../via-text'
+// 用法：VIA_TEXT.title / .checkbox / .hint / .lockedNote / .wizardCheckbox / .wizardHint
+```
+
+**为什么这么做**：`_locales` 是上游文件，往里加词条等于在语言包里制造冲突面（上游改词条就冲突、上游加词条就漏译），而且历史上往语言包写词条出过 P0 事故（条目结构写错导致选项页白屏）。硬编码之后五个语言包可以完全保持上游原样，语言包退出改动面。
+
+> ⚠️ **代价**：英文/繁体用户看到的 Via 卡片也是中文。Via 兼容本身服务中文用户群体，可接受。若将来要做多语言，在 `VIA_TEXT` 对象里按 locale 补字段、调用处改成 `VIA_TEXT.title[locale]`，仍然不需要碰 `_locales`。

@@ -285,8 +285,8 @@
                 :input-value="via_compatible"
                 :true-value="true"
                 :false-value="false"
-                :label="t('LabelViaCompatible')"
-                :hint="t('DescriptionViaCompatibleNoEncrypt')"
+                :label="VIA_TEXT.wizardCheckbox"
+                :hint="VIA_TEXT.wizardHint"
                 :persistent-hint="true"
                 @change="onViaCompatibleChange" />
               <v-select
@@ -746,6 +746,7 @@ import OptionSyncIntervalEnabled from '../components/OptionSyncIntervalEnabled.v
 import OptionAutoSync from '../components/OptionAutoSync.vue'
 import OptionClientCert from '../components/OptionClientCert.vue'
 import OptionSyncOnStartup from '../components/OptionSyncOnStartup.vue'
+import { VIA_TEXT } from '../via-text'
 
 export default {
   name: 'NewAccount',

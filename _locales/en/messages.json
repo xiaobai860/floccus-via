@@ -188,12 +188,12 @@
   "DescriptionBookmarksfile": {
     "message": "a path to where the bookmarks file will reside on the server, relative to your WebDAV URL (all folders in the path must already exist). e.g. personal_stuff/bookmarks.xbel"
   },
-  "DescriptionBookmarksfilegoogle": {
-    "message": "the file name of the bookmarks file that will reside in your Google Drive. Do not enter the full file path, only the file name. Make sure this name is unique in your Drive. e.g. mybookmarks.xbel"
-  },
-  "DescriptionBookmarksfiledropbox": {
-    "message": "the file name of the bookmarks file that will reside in your Dropbox. Do not enter the full file path, only the file name. Make sure this name is unique in your Dropbox. e.g. mybookmarks.xbel"
-  },
+ "DescriptionBookmarksfilegoogle": {
+   "message": "the file name of the bookmarks file that will reside in your Google Drive. Do not enter the full file path, only the file name. Make sure this name is unique in your Drive. e.g. mybookmarks.xbel"
+ },
+ "DescriptionBookmarksfiledropbox": {
+   "message": "the file name of the bookmarks file that will reside in your Dropbox. Do not enter the full file path, only the file name. Make sure this name is unique in your Dropbox. e.g. mybookmarks.xbel"
+ },
   "DescriptionBookmarksfilegit": {
     "message": "a path to the bookmarks file relative to your Git repository root (all folders in the path must already exist). e.g. personal_stuff/bookmarks.xbel"
   },
@@ -381,7 +381,7 @@
     "message": "Debug logs"
   },
   "LabelFunddevelopment": {
-    "message": "💸 Fund development"
+    "message": "\uD83D\uDCB8 Fund development"
   },
   "DescriptionFunddevelopment": {
     "message": "Work on floccus is fuelled by a voluntary subscription model. If you think what I do is worthwhile, and if you can spare a few coins each month without hardship, please support my work. Also, please consider giving floccus a rating on the addon store of your choice. Thank you!💙"
@@ -639,15 +639,6 @@
   "DescriptionAllowredirects": {
     "message": "Enable this option, if you get redirect errors during syncing, which you believe to be unwarranted."
   },
-  "LabelOptionsViaCompat": {
-    "message": "Via browser compatibility"
-  },
-  "LabelViaCompatible": {
-    "message": "Read and write the bookmark file in the native Netscape format used by the Via browser"
-  },
-  "DescriptionViaCompatible": {
-    "message": "Turn this on when the bookmark file is also used by the Via browser on your phone (e.g. synced through 坚果云/WebDAV). Floccus then flattens Via's single wrapping root folder, writes the standard Netscape file header and ADD_DATE, and drops its own ID/TAGS attributes, so both sides keep writing the same file without corrupting each other."
-  },
   "LabelSearch": {
     "message": "Search bookmarks"
   },
@@ -708,10 +699,10 @@
   "LabelMobilesettings": {
     "message": "Mobile settings"
   },
-  "LabelContinuefloccus": {
+  "LabelContinuefloccus":{
     "message": "Continue to floccus"
   },
-  "LabelAbout": {
+  "LabelAbout":{
     "message": "About"
   },
   "LabelCurrentversion": {
@@ -801,7 +792,7 @@
   "LabelExportBookmarks": {
     "message": "Export Bookmarks"
   },
-  "DescriptionExportBookmarks": {
+  "DescriptionExportBookmarks" : {
     "message": "You can export all bookmarks in this profile as a HTML file compatible with all major browsers."
   },
   "LabelShareitem": {
@@ -859,7 +850,7 @@
     "message": "Write a review on Edge Addons"
   },
   "LabelWritereview": {
-    "message": "💙 Share the love!"
+    "message": "\uD83D\uDC99 Share the love!"
   },
   "DescriptionWritereview": {
     "message": "If you're excited about floccus, let the world know by leaving a rating on one of the platforms below."
@@ -882,31 +873,31 @@
   "DescriptionReportproblem": {
     "message": "If you would like to directly contact the developers with a concrete issue, you can do so here:"
   },
-  "LabelAdapterKarakeep": {
+  "LabelAdapterKarakeep":  {
     "message": "Karakeep"
   },
-  "DescriptionAdapterKarakeep": {
+  "DescriptionAdapterKarakeep":  {
     "message": "Sync your bookmarks with the open-source self-hosted Karakeep app. It can only sync http bookmarks. This option cannot make use of end-to-end encryption and does not support keeping the order of bookmarks across syncs."
   },
-  "LabelApiKey": {
+  "LabelApiKey":  {
     "message": "API key"
   },
-  "LabelKarakeepurl": {
+  "LabelKarakeepurl":  {
     "message": "The URL of your Karakeep server"
   },
   "LabelKarakeepconnectionerror": {
     "message": "Failed to connect to your Karakeep server"
   },
-  "LabelAdapterlinkwarden": {
+  "LabelAdapterlinkwarden":  {
     "message": "Linkwarden"
   },
-  "DescriptionAdapterlinkwarden": {
+  "DescriptionAdapterlinkwarden":  {
     "message": "Sync your bookmarks with the open-source Linkwarden app, either hosted on your own server or in the cloud at cloud.linkwarden.app. It can only sync http, ftp and javascript bookmarks. This option cannot make use of end-to-end encryption and does not support keeping the bookmark order across syncs."
   },
-  "LabelLinkwardenurl": {
+  "LabelLinkwardenurl":  {
     "message": "The URL of your Linkwarden server"
   },
-  "LabelAccesstoken": {
+  "LabelAccesstoken":  {
     "message": "Access token"
   },
   "LabelLinkwardenconnectionerror": {
@@ -927,7 +918,7 @@
   "LabelOpeninnewtab": {
     "message": "Open this view in a new tab"
   },
-  "LabelFaq": {
+  "LabelFaq":{
     "message": "Check the FAQ"
   },
   "StatusSyncingfailed": {
@@ -998,13 +989,5 @@
   },
   "DescriptionSynconstartup": {
     "message": "If enabled, this profile will be synced on startup. This is useful if you want to sync your bookmarks on startup, but don't want to wait for the next scheduled sync."
-  },
-  "DescriptionViaCompatibleNoEncrypt": {
-    "message": "Via only reads Netscape-format HTML. Checking this hides the passphrase and file-format settings above, fills the path in as Via/bookmarks.html and locks the format to HTML. Once enabled it cannot be turned off here; to go back to the official format, delete this account and create a new one without checking this box.",
-    "description": "Hint under the Via compatibility checkbox in the new-account wizard."
-  },
-  "DescriptionViaLocked": {
-    "message": "Via compatibility is on, so the passphrase and file-format settings are hidden: Via only reads unencrypted HTML, and the format is fixed to HTML. To switch back to the official format, delete this account and create a new one without checking Via compatibility.",
-    "description": "Note shown in the WebDAV account settings when Via compatibility is enabled."
   }
 }

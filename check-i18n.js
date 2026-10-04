@@ -52,19 +52,49 @@ const locales = fs.readdirSync(LOCALES).filter((d) =>
   fs.existsSync(path.join(LOCALES, d, 'messages.json'))
 )
 
+function loadJson(loc) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(LOCALES, loc, 'messages.json'), 'utf8'))
+  } catch (e) {
+    return null
+  }
+}
+
+/**
+ * 与 src/lib/native/I18n.ts 的 getMessageChain() 保持一致的回退规则。
+ *
+ * 背景：本分支的 _locales 五个语言包保持【上游原样、零改动】，
+ * 所以 zh_CN / zh-Hans 相对上游 en 会缺一些词条。但 I18n.ts 里那条
+ * 「zh_CN / zh-Hans 先借道 zh 简体包，再回退 en」的逐 key 回退链能兜住它们，
+ * 界面上不会露英文 —— 所以这些缺口是【合法且被兜住的】，不能报 FAIL。
+ *
+ * zh_TW 不在此列：它是繁体包，I18n 刻意不让它借道简体包（否则繁体用户
+ * 会看到简体），所以它的缺口是真缺口。
+ */
+const FALLBACK_PROVIDERS = { zh_CN: ['zh'], 'zh-Hans': ['zh'] }
+
 const rows = []
 for (const loc of locales) {
-  const file = path.join(LOCALES, loc, 'messages.json')
-  let json
-  try {
-    json = JSON.parse(fs.readFileSync(file, 'utf8'))
-  } catch (e) {
-    console.log(`✗ ${loc}/messages.json 解析失败：${e.message}`)
+  const json = loadJson(loc)
+  if (!json) {
+    console.log(`✗ ${loc}/messages.json 解析失败或不存在`)
     continue
   }
-  const missing = used.filter((k) => !Object.prototype.hasOwnProperty.call(json, k))
+  const rawMissing = used.filter((k) => !Object.prototype.hasOwnProperty.call(json, k))
+  // 把能被回退链兜住的缺口挪到 covered 列表，不计入 missing
+  const providers = FALLBACK_PROVIDERS[loc] || []
+  const covered = []
+  const missing = []
+  for (const k of rawMissing) {
+    const hit = providers.some((p) => {
+      const m = loadJson(p)
+      return m && Object.prototype.hasOwnProperty.call(m, k)
+    })
+    if (hit) covered.push(k)
+    else missing.push(k)
+  }
   const dead = Object.keys(json).filter((k) => !used.includes(k))
-  rows.push({ loc, total: Object.keys(json).length, missing, dead, json })
+  rows.push({ loc, total: Object.keys(json).length, missing, covered, dead, json })
 }
 
 console.log('\n=== 引用了却缺失（会因回退而露出英文）===')
@@ -76,6 +106,17 @@ for (const r of rows) {
   }
 }
 if (!anyMissing) console.log('（无）')
+
+// 2.5 被回退链兜住的缺口：说明白，避免以后误以为漏翻译
+const anyCovered = rows.filter((r) => r.covered.length)
+if (anyCovered.length) {
+  console.log('\n=== 缺失但已被回退链兜住（不算缺口，界面不会露英文）===')
+  for (const r of anyCovered) {
+    console.log(
+      `[${r.loc}] ${r.covered.length} 个，由 ${(FALLBACK_PROVIDERS[r.loc] || []).join('/')} 兜底: ${r.covered.join(', ')}`
+    )
+  }
+}
 
 // 3. 重点：中文系语言包的缺口单独列出来，方便补翻译
 const zhLocales = ['zh', 'zh_CN', 'zh-Hans', 'zh_TW']
@@ -92,9 +133,40 @@ for (const r of zhRows) {
 
 console.log('\n=== 语言包规模 ===')
 for (const r of rows) {
+  const cov = r.covered.length ? `  回退兜底=${r.covered.length}` : ''
   console.log(
-    `${r.loc.padEnd(8)} 词条=${String(r.total).padStart(4)}  未使用=${r.dead.length}  缺=${r.missing.length}`
+    `${r.loc.padEnd(8)} 词条=${String(r.total).padStart(4)}  未使用=${r.dead.length}  缺=${r.missing.length}${cov}`
   )
 }
 
-process.exitCode = anyMissing ? 1 : 0
+// 本分支的硬约束：_locales 必须与上游逐字节一致（零改动）。
+// 任何语言包偏离上游都意味着冲突面回归，必须 FAIL。
+console.log('\n=== 语言包是否偏离上游（floccus-via 硬约束：必须零改动）===')
+const LOCALE_ZERO_DIFF = ['en', 'zh', 'zh_CN', 'zh-Hans', 'zh_TW']
+let localeDirty = false
+for (const loc of LOCALE_ZERO_DIFF) {
+  const f = path.join(LOCALES, loc, 'messages.json')
+  if (!fs.existsSync(f)) continue
+  let base = null
+  try {
+    base = require('child_process')
+      .execSync(`git show 944fc3e:_locales/${loc}/messages.json`, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      })
+  } catch (e) {
+    /* 取不到上游基线就跳过校验，不误报 */
+    console.log(`  ? ${loc.padEnd(9)} 取不到上游基线，跳过比对`)
+    continue
+  }
+  const norm = (s) => s.replace(/\r\n/g, '\n').trim()
+  const same = norm(base) === norm(fs.readFileSync(f, 'utf8'))
+  if (!same) localeDirty = true
+  console.log(`  ${same ? '✅' : '❌'} ${loc.padEnd(9)} ${same ? '与上游一致' : '已被改动'}`)
+}
+if (localeDirty) {
+  console.log('  ❌ 有语言包偏离上游。floccus-via 的 Via 文案走 src/ui/via-text.ts，')
+  console.log('     不需要改语言包 —— 请把它恢复到上游版本。')
+}
+
+process.exitCode = anyMissing || localeDirty ? 1 : 0

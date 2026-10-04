@@ -104,7 +104,7 @@
         <v-icon aria-hidden="true">
           mdi-cellphone-link
         </v-icon>
-        {{ t('LabelOptionsViaCompat') }}
+        {{ VIA_TEXT.title }}
       </v-card-title>
       <v-card-text>
         <!--
@@ -116,8 +116,8 @@
           :true-value="true"
           :false-value="false"
           disabled
-          :label="t('LabelViaCompatible')"
-          :hint="t('DescriptionViaCompatible')"
+          :label="VIA_TEXT.checkbox"
+          :hint="VIA_TEXT.hint"
           :persistent-hint="true" />
         <!--
           VIA-NOTE：讲清"密码和格式为什么不见了"以及怎么换回官方模式。
@@ -126,7 +126,7 @@
         <div
           class="caption mt-2"
           role="note">
-          {{ t('DescriptionViaLocked') }}
+          {{ VIA_TEXT.lockedNote }}
         </div>
         <!--
           这里原来有一个「Via 根文件夹名」输入框（via_root_folder），已删除。
@@ -270,6 +270,7 @@ import OptionPassphrase from './OptionPassphrase.vue'
 import OptionAutoSync from './OptionAutoSync.vue'
 import OptionSyncIntervalEnabled from './OptionSyncIntervalEnabled.vue'
 import OptionSyncOnStartup from './OptionSyncOnStartup.vue'
+import { VIA_TEXT } from '../via-text'
 
 export default {
   name: 'OptionsWebdav',
