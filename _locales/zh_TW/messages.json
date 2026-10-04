@@ -152,9 +152,9 @@
   "DescriptionBookmarksfile": {
     "message": "書籤檔案在伺服器上的路徑，相對於你的 WebDAV URL（路徑中的所有資料夾必須已存在）。例如：personal_stuff/bookmarks.xbel"
   },
- "DescriptionBookmarksfilegoogle": {
-   "message": "書籤檔案在你的 Google Drive 中的檔名。請勿輸入完整路徑，只需輸入檔名。請確保此名稱在 Drive 中是唯一的。例如：mybookmarks.xbel"
- },
+  "DescriptionBookmarksfilegoogle": {
+    "message": "書籤檔案在你的 Google Drive 中的檔名。請勿輸入完整路徑，只需輸入檔名。請確保此名稱在 Drive 中是唯一的。例如：mybookmarks.xbel"
+  },
   "DescriptionBookmarksfilegit": {
     "message": "書籤檔案的路徑，需相對於你的 Git 儲存庫根目錄（路徑中的所有資料夾必須已存在）。例如：personal_stuff/bookmarks.xbel"
   },
@@ -627,10 +627,10 @@
   "LabelMobilesettings": {
     "message": "行動裝置設定"
   },
-  "LabelContinuefloccus":{
+  "LabelContinuefloccus": {
     "message": "繼續前往 floccus"
   },
-  "LabelAbout":{
+  "LabelAbout": {
     "message": "關於"
   },
   "LabelCurrentversion": {
@@ -717,7 +717,7 @@
   "LabelExportBookmarks": {
     "message": "匯出書籤"
   },
-  "DescriptionExportBookmarks" : {
+  "DescriptionExportBookmarks": {
     "message": "你可以將此設定檔中的所有書籤匯出為相容於所有主流瀏覽器的 HTML 檔案。"
   },
   "LabelShareitem": {
@@ -813,31 +813,31 @@
   "DescriptionReportproblem": {
     "message": "若你想直接向開發者反映具體問題，可以在此進行："
   },
-  "LabelAdapterKarakeep":  {
+  "LabelAdapterKarakeep": {
     "message": "Karakeep"
   },
-  "DescriptionAdapterKarakeep":  {
+  "DescriptionAdapterKarakeep": {
     "message": "將你的書籤與開源自架的 Karakeep 應用程式同步。此選項無法使用端對端加密，且不支援跨同步保持書籤順序。"
   },
-  "LabelApiKey":  {
+  "LabelApiKey": {
     "message": "API 金鑰"
   },
-  "LabelKarakeepurl":  {
+  "LabelKarakeepurl": {
     "message": "你的 Karakeep 伺服器網址"
   },
   "LabelKarakeepconnectionerror": {
     "message": "無法連線至你的 Karakeep 伺服器"
   },
-  "LabelAdapterlinkwarden":  {
+  "LabelAdapterlinkwarden": {
     "message": "Linkwarden"
   },
-  "DescriptionAdapterlinkwarden":  {
+  "DescriptionAdapterlinkwarden": {
     "message": "將你的書籤與開源的 Linkwarden 應用程式同步，可選擇自架或使用雲端服務（cloud.linkwarden.app）。僅支援同步 http、ftp 與 javascript 書籤。此選項無法使用端對端加密，且不支援跨同步保持書籤順序。"
   },
-  "LabelLinkwardenurl":  {
+  "LabelLinkwardenurl": {
     "message": "你的 Linkwarden 伺服器網址"
   },
-  "LabelAccesstoken":  {
+  "LabelAccesstoken": {
     "message": "存取權杖"
   },
   "LabelLinkwardenconnectionerror": {
@@ -882,7 +882,7 @@
   "LabelFeedbacksent": {
     "message": "感謝你的回饋！"
   },
-  "LabelFaq":{
+  "LabelFaq": {
     "message": "查看常見問題（FAQ）"
   },
   "StatusSyncingfailed": {
@@ -905,5 +905,98 @@
   },
   "DescriptionSyncintervalenabled": {
     "message": "啟用基於時間的同步後，將自動每隔幾分鐘排程執行此設定檔的同步。"
+  },
+  "DescriptionAdapterdropbox": {
+    "message": "透過儲存在 Dropbox 中的檔案（可選用加密）同步書籤。它能同步 http、ftp、資料、file 與 javascript 書籤。使用此選項時可選擇使用端對端加密。"
+  },
+  "DescriptionAdapterwedavexamples": {
+    "message": "例如 Koofr、pCloud、IceDrive、kDrive、MagentaCLOUD、Disroot、Mailbox.org、Synology NAS、GMX、WEB.DE"
+  },
+  "DescriptionAuthorizationneeded": {
+    "message": "此設定檔尚未連接到你的帳號，在登入之前無法同步。請開啟設定檔選項登入。"
+  },
+  "DescriptionBookmarksfiledropbox": {
+    "message": "存放於 Dropbox 中的書籤檔案名稱。請勿輸入完整路徑，只輸入檔案名稱。請確保該名稱在 Dropbox 中唯一，例如 mybookmarks.xbel"
+  },
+  "DescriptionLoggedindropbox": {
+    "message": "你已連接 Dropbox 帳號，將書籤同步檔案儲存在 Dropbox 中。"
+  },
+  "DescriptionLogindropbox": {
+    "message": "連接你的 Dropbox 帳號，將書籤同步檔案儲存在 Dropbox 中。"
+  },
+  "DescriptionPredefinedwebdavurls": {
+    "message": "選取你的服務"
+  },
+  "DescriptionSynconstartup": {
+    "message": "若啟用，將在啟動時同步此設定檔。若你希望在啟動時同步書籤、又不想等待下次排程同步，這個功能會很有用。"
+  },
+  "DescriptionTags": {
+    "message": "輸入標籤並按 enter"
+  },
+  "DescriptionViaCompatible": {
+    "message": "當書籤檔同時也被你手機上的 Via 瀏覽器使用（例如透過堅果雲／WebDAV 同步）時，請開啟此選項。此時 floccus 會將 Via 那層「單一根包裝資料夾」拍平，寫出標準 Netscape 檔案標頭與 ADD_DATE，並且不再寫入自己的 ID／TAGS 屬性，讓兩端始終寫同一份檔案而不互相破壞。"
+  },
+  "DescriptionViaRootFolder": {
+    "message": "Via 會把整棵書籤樹包在一個根資料夾裡，把這個名稱原樣寫回去才能讓兩端對稱。留空表示一律沿用檔案中讀到的名稱（例如「一加5」）。"
+  },
+  "LabelAdapterdropbox": {
+    "message": "Dropbox"
+  },
+  "LabelAuthorize": {
+    "message": "登入"
+  },
+  "LabelDropboxsetup": {
+    "message": "登入 Dropbox"
+  },
+  "LabelHidepassword": {
+    "message": "隱藏密碼"
+  },
+  "LabelHome": {
+    "message": "首頁"
+  },
+  "LabelLink": {
+    "message": "連結"
+  },
+  "LabelLogindropbox": {
+    "message": "使用 Dropbox 登入"
+  },
+  "LabelMoreactions": {
+    "message": "更多操作"
+  },
+  "LabelOptionsViaCompat": {
+    "message": "Via 瀏覽器相容性"
+  },
+  "LabelParentfolder": {
+    "message": "上層資料夾"
+  },
+  "LabelPredefinedwebdavurls": {
+    "message": "預先定義的伺服器 URL"
+  },
+  "LabelServerconnectionsuccessful": {
+    "message": "伺服器連線成功"
+  },
+  "LabelShowpassword": {
+    "message": "顯示密碼"
+  },
+  "LabelSortby": {
+    "message": "排序依據"
+  },
+  "LabelSynconstartup": {
+    "message": "啟動時同步"
+  },
+  "LabelTags": {
+    "message": "標籤"
+  },
+  "LabelTitle": {
+    "message": "標題"
+  },
+  "LabelViaCompatible": {
+    "message": "以 Via 瀏覽器使用的原生 Netscape 格式讀寫書籤檔"
+  },
+  "LabelViaRootFolder": {
+    "message": "Via 根資料夾名稱（選填）"
+  },
+  "StatusAuthorizationneeded": {
+    "message": "需要登入"
   }
 }

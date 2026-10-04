@@ -5,7 +5,11 @@
     <title>Floccus</title>
 </head>
 <body>
-<script src="../../lib/chrome-promise.js"></script>
+<!--
+  这里原本引用了 ../../lib/chrome-promise.js，但该项目并不存在这个文件，
+  且全仓库没有代码使用全局 ChromePromise —— 加载后只会触发一次 404。
+  已移除；如果你确实需要它，把文件放回 lib/ 再在这里加回 script 标签。
+-->
 {{ scripts }}
 </body>
 </html>

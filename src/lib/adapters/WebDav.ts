@@ -46,6 +46,11 @@ export default class WebDavAdapter extends CachingAdapter {
       password: 's3cret',
       bookmark_file: 'bookmarks.xbel',
       bookmark_file_type: 'xbel',
+      // Via 浏览器双向同步的坚果云 bookmarks.html 走这条：读写都按原生 Netscape 格式，
+      // 不写 floccus 私有属性、不认 Via 的「单一根包装文件夹」当普通文件夹。
+      via_compatible: false,
+      // Via 导出的根文件夹名（例如「一加5」）。留空时自动沿用每次解析到名字。
+      via_root_folder: '',
       includeCredentials: false,
       allowRedirects: false,
       passphrase: '',
@@ -78,6 +83,22 @@ export default class WebDavAdapter extends CachingAdapter {
 
   getBookmarkURL() {
     return this.normalizeServerURL(this.server.url) + this.server.bookmark_file
+  }
+
+  /**
+   * Via 兼容模式的两点读写差异：
+   * - 解析时把 Via 那个包住整棵树的根文件夹拍平，只记住它的名字；
+   * - 输出时按 Via 原生 Netscape 格式写（文件头 + ADD_DATE + 无 floccus 私有 ID/TAGS），
+   *   并且根文件夹沿用它自己那个名字，保证 Via 下一次同步还是同一棵树。
+   */
+  getHtmlSerializerOptions() {
+    const data = this.getData()
+    if (!data.via_compatible) return { viaCompatible: false }
+    const rootName =
+      (data.via_root_folder && data.via_root_folder) ||
+      (this.bookmarksCache && this.bookmarksCache.viaRootName) ||
+      ''
+    return { viaCompatible: true, rootFolderName: rootName }
   }
 
   getBookmarkLockURL() {
@@ -273,7 +294,7 @@ export default class WebDavAdapter extends CachingAdapter {
           if (!xmlDocText.includes('<!DOCTYPE NETSCAPE-Bookmark-file-1>')) {
             throw new FileUnreadableError()
           }
-          this.bookmarksCache = Html.deserialize(xmlDocText)
+          this.bookmarksCache = Html.deserialize(xmlDocText, this.getHtmlSerializerOptions())
           break
         default:
           throw new Error('Invalid bookmark file type')
@@ -363,7 +384,8 @@ export default class WebDavAdapter extends CachingAdapter {
     const newTreeHash = await this.bookmarksCache.hash(this.hashSettings)
     if (newTreeHash !== this.initialTreeHash) {
       const fullUrl = this.getBookmarkURL()
-      let xbel = this.server.bookmark_file_type === 'xbel' ? createXBEL(this.bookmarksCache, this.highestId) : createHTML(this.bookmarksCache, this.highestId)
+      const htmlOptions = this.getHtmlSerializerOptions()
+      let xbel = this.server.bookmark_file_type === 'xbel' ? createXBEL(this.bookmarksCache, this.highestId) : createHTML(this.bookmarksCache, this.highestId, htmlOptions)
       if (this.server.passphrase) {
         const salt = Crypto.bufferToHexstr(Crypto.getRandomBytes(64))
         const ciphertext = await Crypto.encryptAES(this.server.passphrase, xbel, salt)
@@ -882,7 +904,24 @@ function createXBEL(rootFolder, highestId) {
   return output
 }
 
-function createHTML(rootFolder, highestId) {
+function createHTML(rootFolder, highestId, serializerOptions) {
+  // Via 兼容模式下输出的就是 Via 自己那份原生备份文件的样子：完整文件头 + 根包装文件夹 +
+  // 每个节点带 ADD_DATE，不带 floccus 私有的 highestId 注释和 ID/TAGS 属性。
+  // 这样 Via 导入时不会把它当成陌生文件整份覆盖，同步双方才是对称的。
+  if (serializerOptions && serializerOptions.viaCompatible) {
+    return (
+      `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<!-- This is an automatically generated file.
+     It will be read and overwritten.
+     DO NOT EDIT! -->
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+` + Html.serialize(rootFolder, serializerOptions) + `</DL><p>
+</html>`
+    )
+  }
+
   let output = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
 <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
 <TITLE>Bookmarks</TITLE>`

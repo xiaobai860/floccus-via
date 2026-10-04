@@ -1,5 +1,9 @@
 import IntlMessageFormat from 'intl-messageformat'
 import DEFAULT_MESSAGES from '../../../_locales/en/messages.json'
+// 简体中文兜底包。上游的 zh_CN / zh-Hans 常常落后于 zh（缺若干新词条），
+// 若缺 key 就直接回退英文，中文用户会在设置页看到一整块英文。
+// 这里让 zh_CN / zh-Hans 先回退到 zh，再回退 en。
+import SIMPLIFIED_CHINESE_MESSAGES from '../../../_locales/zh/messages.json'
 
 // hehe, ignore all the things...
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -22,10 +26,8 @@ export default class I18n {
   private locales: string[];
   private locale = 'en'
   private messages: Messages | undefined;
-  private defaultMessages: Messages;
   constructor(locale: string) {
     this.locales = [locale]
-    this.defaultMessages = DEFAULT_MESSAGES
     this.messages = DEFAULT_MESSAGES
   }
 
@@ -77,25 +79,33 @@ export default class I18n {
   }
 
   /**
-   * Get message with given name from the default locale
-   */
-  private getDefaultLocaleMessage(messageName: string): TranslationEntry | null {
-    if (!Object.hasOwnProperty.call(this.defaultMessages, messageName)) {
-      console.warn(`WARN: No message found with name ${messageName} in default locale en`)
-      return null
-    }
-    return this.defaultMessages[messageName]
-  }
-
-  /**
    * Get message with given name
    */
-  private doGetMessage(messageName: string): TranslationEntry | null {
-    if (!this.messages || !Object.hasOwnProperty.call(this.messages, messageName)) {
-      console.warn(`No message found with name ${messageName} in locale ${this.locale}. Using default locale 'en'`)
-      return this.getDefaultLocaleMessage(messageName)
+  /**
+   * 回退链：当前语言包 → 同语系兜底包 → 英文兜底。
+   * 逐 key 向下找，而不是整包切换，这样单个词条缺失只影响那一条。
+   */
+  private getMessageChain(): Messages[] {
+    const chain: Messages[] = []
+    if (this.messages) chain.push(this.messages)
+    // zh-CN / zh-Hans 先借道 zh（简体）；zh-TW 不借用，避免繁体用户看到简体
+    if (this.locale === 'zh_CN' || this.locale === 'zh-Hans') {
+      chain.push(SIMPLIFIED_CHINESE_MESSAGES as Messages)
     }
-    return this.messages[messageName]
+    chain.push(DEFAULT_MESSAGES)
+    return chain
+  }
+
+  private doGetMessage(messageName: string): TranslationEntry | null {
+    for (const messages of this.getMessageChain()) {
+      if (messages && Object.hasOwnProperty.call(messages, messageName)) {
+        return messages[messageName]
+      }
+    }
+    console.warn(
+      `No message found with name ${messageName} for locale ${this.locale}. Tried the fallback chain and gave up.`
+    )
+    return null
   }
 }
 

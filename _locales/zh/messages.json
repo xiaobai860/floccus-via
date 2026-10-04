@@ -639,6 +639,21 @@
   "DescriptionAllowredirects": {
     "message": "如果在同步过程中遇到您认为不必要的重定向错误，请启用此选项。"
   },
+  "LabelOptionsViaCompat": {
+    "message": "Via 浏览器兼容"
+  },
+  "LabelViaCompatible": {
+    "message": "按 Via 浏览器使用的原生 Netscape 格式读写书签文件"
+  },
+  "DescriptionViaCompatible": {
+    "message": "当同步的书签文件同时被手机上的 Via 浏览器使用（例如通过坚果云/WebDAV 双向同步）时打开。此时 floccus 会把 Via 那层「单一根包装文件夹」拍平，写出标准 Netscape 文件头和 ADD_DATE，并不再写自己的 ID/TAGS 属性，让两边始终写同一份文件而不会互相破坏。"
+  },
+  "LabelViaRootFolder": {
+    "message": "Via 根文件夹名（可选）"
+  },
+  "DescriptionViaRootFolder": {
+    "message": "Via 会把整棵书签树包在一个根文件夹里，把这个名字原样写回去才能保证两边对称。留空表示始终沿用文件里读到的名字（例如「一加5」）。"
+  },
   "LabelSearch": {
     "message": "搜索书签"
   },

@@ -402,6 +402,12 @@ export class Folder<L extends TItemLocation> {
   public loaded = true
   public location: L
   public index: IItemIndex<L>
+  /**
+   * Via / 原生 Netscape 书签格式把整棵树包在一个根文件夹里，解析时记下它的名字，
+   * 回写文件时原样包回去，否则 Via 下次同步会把它自己的根覆盖上来，路径就错一层。
+   * 只有赋值之后才是实例属性，不赋值的活依旧不参与哈希。
+   */
+  public viaRootName?: string
 
   constructor({
     id,

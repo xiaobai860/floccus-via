@@ -66,6 +66,43 @@
       </v-card-text>
     </v-card>
 
+    <!--
+      Via 浏览器书签双向同步专用。Via 导出的 bookmarks.html 不是 floccus 自己那套
+      格式：整棵树被包在一个根文件夹里（例如「一加5」），只有 ADD_DATE，没有 floccus
+      的 ID/TAGS。打开这个开关后，读写都按 Via 原生 Netscape 格式走，详见
+      src/lib/serializers/Html.ts 顶部注释。
+    -->
+    <v-card class="mb-4">
+      <v-card-title
+        id="via"
+        class="text-h5"
+        role="heading"
+        aria-level="2">
+        <v-icon aria-hidden="true">
+          mdi-cellphone-link
+        </v-icon>
+        {{ t('LabelOptionsViaCompat') }}
+      </v-card-title>
+      <v-card-text>
+        <v-checkbox
+          :input-value="via_compatible"
+          :true-value="true"
+          :false-value="false"
+          :label="t('LabelViaCompatible')"
+          :hint="t('DescriptionViaCompatible')"
+          :persistent-hint="true"
+          @change="$emit('update:via_compatible', $event)" />
+        <v-text-field
+          v-if="via_compatible"
+          class="mt-2"
+          :value="via_root_folder"
+          :label="t('LabelViaRootFolder')"
+          :hint="t('DescriptionViaRootFolder')"
+          :persistent-hint="true"
+          @input="$emit('update:via_root_folder', $event)" />
+      </v-card-text>
+    </v-card>
+
     <v-card
       v-if="isBrowser"
       class="mb-4">
@@ -230,6 +267,8 @@ export default {
     'failsafe',
     'allowRedirects',
     'bookmark_file_type',
+    'via_compatible',
+    'via_root_folder',
     'enabled',
     'label',
     'syncIntervalEnabled',
