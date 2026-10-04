@@ -9,6 +9,11 @@
 # 所以上游改了 README 我们也跟得到，只是不覆盖我们自己的门面。
 #
 # driver 实体定义在 .git/config 的 [merge "keep-ours"]，clone 到别的机器时
-# 那台机器需要自己补一句：git config merge.keep-ours.driver "cp %A %A"
+# 那台机器需要自己补一句：git config merge.keep-ours.driver "touch %A"
+# （注意是 touch 不是 cp：cp %A %A 自己读自己会报错，git 会当成合并失败）
 # ─────────────────────────────────────────────────────────────────────────────
 README.md merge=keep-ours
+
+# 归档副本：原样保存上游 README（LF），不做行尾转换，
+# 否则本机 autocrlf 每次都会把它标成 modified，污染 git status
+README.upstream.md -text

@@ -52,6 +52,8 @@ const VIA_PATCH_FILES = [
  * 脚本启动时会逐个校验存在性，少一个就立刻报警。
  */
 const VIA_PROTECTED_FILES = [
+  'README.md', // ★ fork 门面：GitHub 仓库首页文档，靠 .gitattributes 的 keep-ours 锁住不被上游覆盖
+  'README.upstream.md', // 上游 README 的归档副本（fork 专属，上游没有这个文件）
   'README.via.md', // ★ 本文档：fork 的维护说明，绝不能被覆盖或删掉
   'src/lib/serializers/HtmlVia.ts', // Via 插槽本体
   'audit-extension.js',
@@ -101,9 +103,42 @@ const POST_SYNC_CHECKLIST = [
   ['P1 必查', 'src/lib/adapters/Caching.ts 还能不能挂 viaRootName', '重构缓存会让 Via 根文件夹识别失效'],
   ['P2 顺手', 'git status 里 android/ios 那 8 个 M', '纯行尾噪声，别 add，别用 git add -A'],
   ['P2 顺手', 'floccus-via.zip / .crx / key.pem', '本地产物与私钥，一律不提交'],
+  ['P2 顺手', 'git diff README.upstream.md', '上游 README 的归档，变了说明上游更新了说明文档'],
 ]
 
 const run = (cmd) => execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+
+/**
+ * 上游 README 归档检查（README.upstream.md）
+ *
+ * 根 README.md 是我们的中文门面，被 .gitattributes 的 merge=keep-ours 锁死，
+ * 上游改 README 不会跑到首页上来。但「上游 README 更新了」这件事本身得让我们知道，
+ * 所以把它单独归档成 README.upstream.md（fork 专属文件，上游没有，merge 不会碰）。
+ *
+ * 默认只体检不写文件；带 --archive-readme 才真正更新归档。
+ */
+function checkUpstreamReadme(upRef, doWrite) {
+  const TARGET = 'README.upstream.md'
+  let upstream
+  try {
+    upstream = run(`git show ${upRef}:README.md`)
+  } catch (e) {
+    return { exists: false, changed: false, applied: false }
+  }
+  if (!upstream || !upstream.trim()) return { exists: false, changed: false, applied: false }
+
+  // ⚠️ 行尾归一化：上游 blob 是 LF，而本机 core.autocrlf=true 会把归档文件落成 CRLF，
+  //    直接字符串比会永远判定「变了」，每次同步都误报。两边都吃掉 \r 再比。
+  const norm = (s) => s.replace(/\r\n/g, '\n')
+  const archived = fs.existsSync(TARGET) ? fs.readFileSync(TARGET, 'utf8') : ''
+  const changed = norm(upstream) !== norm(archived)
+  if (changed && doWrite) {
+    // 原样写（LF），配合 .gitattributes 的 -text 保证跨机器 git status 都干净
+    fs.writeFileSync(TARGET, upstream, 'utf8')
+    return { exists: true, changed: true, applied: true }
+  }
+  return { exists: true, changed, applied: false }
+}
 
 function main() {
   const asJson = process.argv.includes('--json')
@@ -186,6 +221,27 @@ function main() {
       '合并后务必跑 node check-i18n.js，中文包缺口会暴露出来。'
     report.notes.push(note)
     console.log('\n📌 语言包提示：' + note)
+  }
+
+  // 3.5 上游 README 归档体检
+  // README.md 被 .gitattributes 的 keep-ours 锁死，上游改 README 不会顶掉我们的门面；
+  // 但「上游 README 更新了」这件事得知道，所以拿上游版本跟 README.upstream.md 比一下。
+  const archiveWrite = process.argv.includes('--archive-readme')
+  const rd = checkUpstreamReadme(UPSTREAM_REF, archiveWrite)
+  if (rd.exists) {
+    if (rd.changed) {
+      if (rd.applied) {
+        console.log('\n📌 上游 README 有更新，已同步进 README.upstream.md（归档已刷新）。')
+      } else {
+        const note =
+          '上游 README 更新了，但我们的首页是中文导引卡（keep-ours 锁住，不会被覆盖）。' +
+          '要跟上游改动就跑 node patch-readme-head.js --refresh，或先 node sync-upstream.js --archive-readme 只更新归档。'
+        report.notes.push(note)
+        console.log('\n📌 ' + note)
+      }
+    } else {
+      console.log('\n📌 上游 README 与归档一致（README.md 仍走 keep-ours，无需处理）。')
+    }
   }
 
   // 4. merge-tree dry-run：git 会提前把真冲突文件列出来
