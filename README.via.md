@@ -131,7 +131,15 @@ Couldn't load icon icons/logo.png specified in action.
 
 - ☑ **Via 浏览器兼容**：**已勾选且锁定不可取消**（灰色的就是不可改）
 - 下面一行说明会告诉你「为什么密码和格式不见了、想换回官方格式只能删号重建」
-- **Via 根文件夹名**：**留空**。留空 = 沿用文件里读到的名字（例如 `一加5`），保证电脑写出去的和 Via 认得的是同一棵树。只有想强制换个根名字时才填。
+
+> **这里曾经有一个「Via 根文件夹名」输入框，已删除。** 实测用户的真实 Via 文件（顶层是
+> `Bookmarks Bar` / `Other Bookmarks` / `移动收藏夹` 三平级）根本不会触发「单一根包装」，
+> 填了反而会让 floccus 在文件外面**强行再包一层**，Via 那边看到结构就变了。
+>
+> ⚠️ **但底层的自动机制必须保留**（`HtmlVia.ts` 的 `findSingleRootFolder` + `lastRootFolderName` +
+> `ROOT_DATE_KEY`）：如果哪天 Via 把文件变成「整棵树包在一个根文件夹里」的形态（例如用户只留一个
+> 顶层目录、或 Via 版本升级改了导出结构），那套机制会自动认出根名字并原样包回去，丢掉了就会
+> **静默丢掉那层包装**。28 项回归里有一整组专门覆盖它，改动时别碰。
 
 > 这一整块界面是**中文**的。若你看到某几行是英文，说明那个词条没进当前语言包 —— 中文环境走的是 `zh_CN` 语言包，本分支已把它和 `zh` 对齐到 0 缺失（`node check-i18n.js` 可复验）。
 
@@ -555,8 +563,8 @@ node dist/via-check/bundle.js     # 28 项全 PASS
 | **P1-2** | `src/lib/serializers/Html.ts` | 我们的 6 个 `VIA-HOOK` 全在这。上游改 `serialize()` / `_serializeFolder()` / `parseDL()` 主体会打架 | `grep -n VIA-HOOK src/lib/serializers/Html.ts` 必须还是 **6 个**，而且顺序别乱 | 除这 6 处，其它冲突**一律接受上游版本**；只把 `if (via)` 分支并排贴回去 |
 | **P1-3** | `src/lib/adapters/WebDav.ts` | Via 的两个配置挂在这：`via_compatible` / `via_root_folder`（51、53 行的默认值）+ `getHtmlSerializerOptions()`（96 行）里的短路 `if (!data.via_compatible) return { viaCompatible: false }` | 上游改了 `getDefaultValues` / `getHtmlSerializerOptions` 的签名 | 把我们的两段并回去。**这条短路必须还在**，否则不开 Via 开关也会走兼容路径 |
 | **P1-4** | `manifest.json` | `version` 冲突是必然的（上游发版会改，`name` 是我们自己的） | `version` 跟 `name` 同时出现在 diff 里 | 保留上游版本号 + 我们的 `name: floccus-via`；顺手确认 **`tabGroups` 权限还在**（是我们补的，官方 Chrome manifest 有，缺了标签页分组整片拿不到） |
-| **P1-5** | `src/ui/components/OptionsWebdav.vue` | Via 卡片（`v-if="via_compatible"` 整块条件显示 + 锁定开关 + 说明 + 根文件夹输入框），以及密码块/格式块的 `v-if="!via_compatible"` | `grep -n "VIA-HIDE\|VIA-NOTE" src/ui/components/OptionsWebdav.vue` 应各有 1 处；`grep -c 'v-if="!via_compatible"' ` 应为 **2** | 补回这 4 处。**特别注意别把 `v-if="via_compatible"` 改成无条件**——那会让普通 WebDAV 账号也看到 Via 卡片 |
-| **P1-5b** | `src/ui/views/NewAccount.vue` | 向导页的 Via 勾选框 + `onViaCompatibleChange()` 三联动预填（路径→`Via/bookmarks.html`、格式→html）+ `onCreate` 里那行 `via_compatible: true` 白名单 | `grep -c "VIA-COMPAT" src/ui/views/NewAccount.vue` 应为 5（勾选框 1 + 第4步说明 1 + data 1 + 方法 1 + onCreate 1） | ⚠️ **最易踩空的一处**：上游若重构 `onCreate` 的传参区（它本来就是白名单式 `...(条件 && {字段})`），我们那行会被冲掉 → **勾选只停在界面上、存不进账号**，且**不报任何错**，表现是设置页两块没隐藏、Via 不生效。改完务必实地建一个新号验证 |
+| **P1-5** | `src/ui/components/OptionsWebdav.vue` | Via 卡片（`v-if="via_compatible"` 整块条件显示 + 锁定开关 + 说明），以及密码块/格式块的 `v-if="!via_compatible"`。**根文件夹名输入框已刻意删除，别加回来**（真实文件是三平级，填了反而会多包一层） | `grep -n "VIA-HIDE\|VIA-NOTE" src/ui/components/OptionsWebdav.vue` 应各有 1 处；`grep -c 'v-if="!via_compatible"'` 应为 **2** | 补回这几处。**特别注意别把 `v-if="via_compatible"` 改成无条件**——那会让普通 WebDAV 账号也看到 Via 卡片 |
+| **P1-5b** | `src/ui/views/NewAccount.vue` | **第 3 步（服务器设置，WebDAV URL 之前）**的 Via 勾选框 + **同屏密码短语**的 `v-if="!via_compatible"` + `onViaCompatibleChange()` 三联动预填（路径→`Via/bookmarks.html`、格式→html）+ `onCreate` 里那行 `via_compatible: true` 白名单 | `grep -c "VIA-COMPAT" src/ui/views/NewAccount.vue` 应为 5（勾选框 1 + 第4步说明 1 + data 1 + 方法 1 + onCreate 1）；密码短语的 `v-if="!via_compatible"` 应为 1 处 | ⚠️ **最易踩空的一处**：上游若重构 `onCreate` 的传参区（它本来就是白名单式 `...(条件 && {字段})`），我们那行会被冲掉 → **勾选只停在界面上、存不进账号**，且**不报任何错**，表现是设置页两块没隐藏、Via 不生效。改完务必实地建一个新号验证 |
 | **P1-5c** | `_locales/*` 里的 `DescriptionViaCompatibleNoEncrypt` / `DescriptionViaLocked` | 新增文案，上游没有 | `node add-via-locale.js` 幂等补齐（只新增不覆盖） | ⚠️ 目录名是 **`zh-Hans`（连字符）**，不是 `zh_Hans`；写错会被静默跳过 |
 | **P1-6** | `src/lib/native/I18n.ts` | 我们改了回退链：逐 key 回退 + 同语系借道（`zh_CN`/`zh-Hans` 缺词借 `zh`） | 上游动 I18n 会冲突 | 保留 `getMessageChain` 与 `zh-Hans` 借道，否则 Via 那几个新文案会露英文 |
 | **P1-7** | `src/lib/adapters/Caching.ts` | `WebDav.ts:99` 从 `this.bookmarksCache.viaRootName` 读根文件夹名。上游重构缓存结构 → 根名读不到 | 表现是 Via 端"单一根包装文件夹"识别失效（手机端顶层对不上电脑端） | 把 `viaRootName` 挂回新的缓存对象上 |
