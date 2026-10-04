@@ -9,8 +9,14 @@ const path = require('path')
 
 const ROOT = __dirname
 const DIST = path.join(ROOT, 'dist')
-const OUT = path.join(ROOT, '..', 'floccus-via')
 const OUT_NAME = 'floccus-via'
+// 产物布局：
+//   OUT                扩展目录（加载已解压的扩展程序指向它）—— 默认在仓库上一级，
+//                      因为 Edge/Chrome 的扩展 ID 由该目录的绝对路径哈希决定，
+//                      换路径等于换一个新扩展（storage 里的账号配置不会跟过去）。
+//   dist-out/          zip 与其他零散产物集中放这里，不再散落在项目里。
+const OUT_DIR = path.join(ROOT, 'dist-out')
+const OUT = path.join(ROOT, '..', OUT_NAME)
 
 // 构建产物里混着的测试 / 回归脚本产物，扩展运行时用不到，别跟着进包
 const SKIP_FILES = new Set([
@@ -57,6 +63,16 @@ const rmRecursive = (target) => {
 const main = () => {
   if (!fs.existsSync(DIST)) {
     console.error('找不到 dist/，请先跑 npx gulp build')
+    process.exit(1)
+  }
+
+  // 扩展目录的位置是「产品约束」不是随手定的：Edge/Chrome 的扩展 ID 由这个目录的
+  // 绝对路径哈希决定。挪走它 = 用户那边变成另一个扩展，storage 里的账号配置全丢。
+  // 之前打 zip 用 dist-out/floccus-via 就是踩了这个坑，所以这里显式提醒。
+  if (path.resolve(OUT) !== path.resolve(ROOT, '..', OUT_NAME)) {
+    console.error('⛔ OUT 不是约定的「仓库上一级/' + OUT_NAME + '」路径。')
+    console.error('   挪动扩展目录会让用户 Edge/Chrome 里的扩展变成另一个（ID 随路径哈希变），')
+    console.error('   已保存的账号配置会丢。zip 请放 dist-out/，扩展目录请留在原位。')
     process.exit(1)
   }
 
@@ -128,7 +144,7 @@ const main = () => {
   // 但 Edge / Chromium 自己的解压器会把 "icons\logo.png" 当成一整个文件名，
   // 结果 icons 目录是空的、manifest 里的 icons/logo.png "不存在"，
   // 于是拖 zip 加载时报 "Couldn't load icon icons/logo.png specified in action."。
-  const zipPath = path.join(ROOT, OUT_NAME + '.zip')
+  const zipPath = path.join(OUT_DIR, OUT_NAME + '.zip')
   const files = []
   const walk = (dir, base) => {
     for (const entry of fs.readdirSync(dir)) {

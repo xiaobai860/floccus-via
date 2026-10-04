@@ -12,7 +12,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const zipPath = path.join(__dirname, 'floccus-via.zip')
+const zipPath = path.join(__dirname, 'dist-out', 'floccus-via.zip')
 const b = fs.readFileSync(zipPath)
 
 // 1) 解析 zip 中央目录

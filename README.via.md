@@ -436,7 +436,7 @@ node check-zip.js              # zip 合规
 node audit-extension.js        # 扩展合规（期望 33 PASS / 0 FAIL）
 npx webpack --config webpack.via-check.js
 VIA_FILE="..." FLOCCUS_FILE="..." node dist/via-check/bundle.js   # 28 项回归
-node pack-for-edge.js          # 重新打 ../floccus-via 与 zip
+node pack-for-edge.js          # 重新打 ../floccus-via/ 与 dist-out/floccus-via.zip
 ```
 
 > 回归脚本必须带 `VIA_FILE` / `FLOCCUS_FILE` 两个环境变量（指向真实的 Via 导出和 floccus 导出），否则脚本会因为 `readFileSync(undefined)` 直接崩。
@@ -538,7 +538,7 @@ node check-official-compat.js   # ② 官方格式对等：必须 sha 33ea98f5�
 node check-i18n.js              # ③ 中文四包缺 0
 node check-zip.js               # ④ zip 合规（176 条目 CRC）
 node audit-extension.js         # ⑤ 扩展合规（33 PASS / 0 FAIL）
-node pack-for-edge.js           # ⑥ 重新打 ../floccus-via 与 zip
+node pack-for-edge.js           # ⑥ 重新打 ../floccus-via/ 与 dist-out/floccus-via.zip
 ```
 
 Via 回归要带真实书签文件（脚本会 `readFileSync(undefined)` 崩掉）：
@@ -846,3 +846,33 @@ Via 文案现在**不走语言包**，直接以中文写死在两个组件的模
 **为什么这么做**：`_locales` 是上游文件，往里加词条等于在语言包里制造冲突面（上游改词条就冲突、上游加词条就漏译），而且历史上往语言包写词条出过 P0 事故（条目结构写错导致选项页白屏）。硬编码之后五个语言包可以完全保持上游原样，语言包彻底退出改动面。
 
 > ⚠️ **代价**：英文/繁体用户看到的 Via 卡片也是中文。Via 兼容本身服务中文用户群体，可接受。若将来真要做多语言，就在两个模板里改成 `locale === 'zh' ? '中文' : i18n.t('Key')` 之类的形式，**仍然不需要碰 `_locales`**。
+
+### 11.12 产物放在哪：为什么扩展目录不能挪
+
+打包产物分两处，**不是随手摆的**：
+
+| 产物 | 位置 | 能挪吗 |
+| --- | --- | --- |
+| **扩展目录** `floccus-via/` | `floccus-src` 的**上一级** | ❌ **不能挪，见下** |
+| **zip** `floccus-via.zip` | `floccus-src/dist-out/` | ✅ 随便挪（只是备份/分发用） |
+
+`dist-out/` 已写进 `.gitignore` 与 `.git/info/exclude`，产物永不入库。
+
+### ⚠️ 为什么扩展目录必须留在固定路径
+
+**Edge / Chrome 的扩展 ID 由「该目录的绝对路径」哈希决定。**
+
+```
+扩展目录路径变了 → ID 变了 → 浏览器当成【另一个新扩展】
+                → storage 里的账号配置、Via 勾选状态、同步设置全都读不到
+```
+
+实测踩过一次：把产物挪到 `floccus-src/dist-out/floccus-via` 后，虽然功能一切正常，但用户 Edge 里原本那个 floccus-via 变成了「新扩展」。**如果那时用户已经点过刷新，账号数据就丢了。**
+
+所以：
+
+- ✅ 改代码后照旧覆盖回 `../floccus-via/`，在扩展卡片点「刷新」——路径不变、ID 不变、数据都在
+- ❌ 别为了「看起来整齐」把扩展目录挪进 `dist-out/` 或别处
+- `pack-for-edge.js` 里加了硬检查：`OUT` 不是约定路径就直接 `exit 1`，防止以后（尤其是换机器、clone 到别处时）误改
+
+**顺带**：如果你换机器、目录路径整体变了（比如从 `D:\xiaom\...` 挪到别处），那本来就得在扩展页重新「加载已解压的扩展程序」一次——这时 ID 会变、storage 是新的，属于预期行为，配置重新建一遍即可。真正要防的是**同一台机器上路径被无意改动**。

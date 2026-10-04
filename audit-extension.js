@@ -8,7 +8,11 @@
  *   C. 引用完整性（icons / popup / worker / HTML 内 src= 全部必须存在于包内）
  *
  * 用法：
- *   node audit-extension.js [扩展目录]        # 默认 ../floccus-via
+ *   node audit-extension.js [扩展目录]        # 默认 ../floccus-via（路径不能挪，见下）
+ *
+ * 为什么要显式指定：扩展目录必须放在仓库上一级的固定位置，因为 Edge/Chrome 的
+ * 扩展 ID 由该目录的绝对路径哈希决定。换路径 = 另一个扩展，用户 storage 里的
+ * 账号配置不会跟过去。所以这个脚本的默认值与 pack-for-edge.js 的 OUT 必须一致。
  * 退出码：0 = 全部 PASS（FAIL 数 0）；1 = 存在 FAIL；2 = 用法/读取错误
  */
 const fs = require('fs')

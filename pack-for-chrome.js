@@ -25,8 +25,13 @@ const { execFileSync } = require('child_process')
 
 const ROOT = __dirname
 const OUT_NAME = 'floccus-via'
+// 与 pack-for-edge.js 保持一致（两处路径必须相同）：
+//   OUT      扩展目录，放在仓库上一级 —— Edge/Chrome 的扩展 ID 由该目录绝对路径哈希决定，
+//            换路径等于换一个新扩展（storage 里的账号配置不会跟过去），所以不能随便挪。
+//   dist-out/  zip 集中在这里，不散落在项目里。
+const OUT_DIR = path.join(ROOT, 'dist-out')
 const OUT = path.join(ROOT, '..', OUT_NAME)
-const ZIP = path.join(ROOT, OUT_NAME + '.zip')
+const ZIP = path.join(OUT_DIR, OUT_NAME + '.zip')
 
 const mb = (n) => (n / 1024 / 1024).toFixed(2) + ' MB'
 
