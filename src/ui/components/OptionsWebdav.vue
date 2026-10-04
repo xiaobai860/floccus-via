@@ -85,12 +85,17 @@
       的 ID/TAGS。打开这个开关后，读写都按 Via 原生 Netscape 格式走，详见
       src/lib/serializers/Html.ts 顶部注释。
 
-      VIA-HIDE-2/2：勾上之后开关就锁定不可取消。这里不是"忘了做双向切换"，
-      而是刻意的 —— Via 与加密、XBEL 格式互斥（见上面藏掉的两块），中途放开
-      会让文件格式和实际内容对不上，同步直接报错。解锁办法写在下面的说明里：
-      删掉这个账号重建一个不勾 Via 的。想换回官方格式也只有这一条路。
+      VIA-HIDE-2/2：整张卡片只在「已经是 Via 账号」时出现，普通 WebDAV 账号看不到它。
+      开启 Via 的唯一入口是新建账号向导（那里会一次性预填 Via/bookmarks.html + HTML 格式）。
+      这样做的原因：这里**不能做成可切换的开关**。开启需要三件事同时改（路径、格式、加密），
+      而取消则要决定"文件格式变回什么、云端文件怎么处理"——一旦允许中途切换，
+      就得为「格式与实际内容对不上」写一堆补救逻辑，同步失败时用户看到的还是一堆英文报错。
+      整块隐藏 + 只在向导开启，是唯一没有中间态的做法。已开启的账号开关保持可见但锁定，
+      旁边写清想换回官方格式只能删号重建。
     -->
-    <v-card class="mb-4">
+    <v-card
+      v-if="via_compatible"
+      class="mb-4">
       <v-card-title
         id="via"
         class="text-h5"
@@ -102,27 +107,28 @@
         {{ t('LabelOptionsViaCompat') }}
       </v-card-title>
       <v-card-text>
+        <!--
+          这里只会出现在已经是 Via 账号的设置页上（外层 v-if 挡住了普通账号），
+          所以开关必定是勾选状态，直接 disabled 锁住即可。
+        -->
         <v-checkbox
-          :input-value="via_compatible"
+          :input-value="true"
           :true-value="true"
           :false-value="false"
-          :disabled="via_compatible"
+          disabled
           :label="t('LabelViaCompatible')"
           :hint="t('DescriptionViaCompatible')"
-          :persistent-hint="true"
-          @change="$emit('update:via_compatible', $event)" />
+          :persistent-hint="true" />
         <!--
-          VIA-NOTE：已启用时补一条说明，讲清"密码和格式为什么不见了"以及怎么换回官方模式。
+          VIA-NOTE：讲清"密码和格式为什么不见了"以及怎么换回官方模式。
           不加这句的话用户看到选项凭空消失会当成界面坏了。
         -->
         <div
-          v-if="via_compatible"
           class="caption mt-2"
           role="note">
           {{ t('DescriptionViaLocked') }}
         </div>
         <v-text-field
-          v-if="via_compatible"
           class="mt-2"
           :value="via_root_folder"
           :label="t('LabelViaRootFolder')"
