@@ -266,6 +266,29 @@
               {{ t('LabelServersetup') }}
             </div>
             <v-form>
+              <!--
+                VIA-COMPAT-3/4（服务器设置这一步，webdav 分支）
+                放在「预设服务器」之后、「WebDAV URL」之前，也就是本页最靠前的位置。
+                为什么必须在这一步、还必须在密码短语上面：
+                  · 本页（step 2）是唯一能同时看到「URL / 用户名 / 密码 / 密码短语」的地方，
+                    勾了 Via 之后下面的「密码短语」必须立刻消失 —— 否则用户填了密码，
+                    整个文件会被加密成 {ciphertext,salt}，Via 浏览器根本读不出来，
+                    而界面上却什么提示都没有。
+                  · 位置也刻意放在 URL 之前：它决定了这套配置是「Via 模式」还是「官方模式」，
+                    是整个表单的前提，放最后会显得像附属选项。
+                勾上之后：
+                  · 密码短语（下面那个字段）v-if 隐藏
+                  · 下一步的「书签文件 / 文件格式」自动预填并锁定（见 onViaCompatibleChange）
+              -->
+              <v-checkbox
+                class="mb-2"
+                :input-value="via_compatible"
+                :true-value="true"
+                :false-value="false"
+                :label="t('LabelViaCompatible')"
+                :hint="t('DescriptionViaCompatibleNoEncrypt')"
+                :persistent-hint="true"
+                @change="onViaCompatibleChange" />
               <v-select
                 :items="Object.keys(predefinedWebdavUrls)"
                 :label="t('LabelPredefinedwebdavurls')"
@@ -302,6 +325,7 @@
                 </template>
               </v-text-field>
               <v-text-field
+                v-if="!via_compatible"
                 v-model="passphrase"
                 class="mt-2"
                 :label="t('LabelPassphrase')"
@@ -520,21 +544,11 @@
                 :hint="t('DescriptionBookmarksfile')"
                 :persistent-hint="true" />
               <!--
-                VIA-COMPAT-1/2（向导页）：勾上即定型为 Via 兼容账号。
-                勾选瞬间把路径预填成 Via 自己的布局、格式锁成 HTML，并把格式选择整块藏掉 ——
-                Via 只能读 Netscape 格式，这三步必须同时发生，缺一个同步就会失败。
-                存进账号数据的是 via_compatible（WebDav.getDefaultValues 里有 false 兜底），
-                设置页据此决定要不要露出密码/格式两块，见 OptionsWebdav.vue。
+                VIA-COMPAT-4/4：勾选框本身在【上一步 · 服务器设置】的 VIA-COMPAT-3/4，
+                这一步只负责它带来的两个后果：格式锁定 HTML、格式选择整块藏掉。
+                为什么不再在这一步重复放一个勾选框：同一个开关出现两次容易让人以为
+                两者独立，而它们其实是同一个状态。
               -->
-              <v-checkbox
-                class="mt-2"
-                :input-value="via_compatible"
-                :true-value="true"
-                :false-value="false"
-                :label="t('LabelViaCompatible')"
-                :hint="t('DescriptionViaCompatibleNoEncrypt')"
-                :persistent-hint="true"
-                @change="onViaCompatibleChange" />
               <OptionFileType
                 v-if="!via_compatible"
                 v-model="bookmark_file_type" />
@@ -761,7 +775,7 @@ export default {
       refreshToken: '',
       bookmark_file: 'bookmarks.xbel',
       bookmark_file_type: 'xbel',
-      // VIA-COMPAT-2/2：向导页勾选状态。默认 false = 官方行为；勾上后路径/格式由
+      // VIA-COMPAT-3/4 对应的 data 字段。默认 false = 官方行为；勾上后路径/格式由
       // onViaCompatibleChange 预填成 Via 布局，并写进账号数据供设置页读取。
       via_compatible: false,
       serverFolder: 'Floccus',
@@ -863,7 +877,7 @@ export default {
   },
   methods: {
     /**
-     * VIA-COMPAT-1/2：向导页勾选「Via 浏览器兼容」时的一次性预填。
+     * 配套 VIA-COMPAT-3/4 的一次性预填。
      *
      * 三件事必须同时做，缺一个同步就会失败：
      *   1. 路径 → Via 导出的布局 Via/bookmarks.html（用 Via 的目录结构，同一份文件两边都在写）
@@ -926,7 +940,7 @@ export default {
         ...(this.adapter === 'webdav' && {
           includeCredentials: this.includeCredentials,
         }),
-        // VIA-COMPAT-1/2 的落地点：onCreate 是白名单式传参（上面每个字段都靠
+        // VIA-COMPAT-3/4 的落地点：onCreate 是白名单式传参（上面每个字段都靠
         // `...(条件 && { 字段 })` 显式放行），不放这一句的话勾选只停在界面上、
         // 根本存不进账号，设置页也就读不到 via_compatible。
         // 只在 webdav 且确实勾了才传，避免给其它适配器塞无关字段。
