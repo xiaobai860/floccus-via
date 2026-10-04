@@ -1006,7 +1006,7 @@
     "message": "If enabled, this profile will be synced on startup. This is useful if you want to sync your bookmarks on startup, but don't want to wait for the next scheduled sync."
   },
   "DescriptionViaCompatibleNoEncrypt": {
-    "message": "Via only reads Netscape-format HTML, so this option will hide the passphrase and file-format settings above, fill in the path Via/bookmarks.html, and lock the format to HTML. Once enabled it cannot be turned off here; to go back to the official format, delete this account and create a new one without checking this box.",
+    "message": "Via only reads Netscape-format HTML. Checking this hides the passphrase and file-format settings above, fills the path in as Via/bookmarks.html and locks the format to HTML. Once enabled it cannot be turned off here; to go back to the official format, delete this account and create a new one without checking this box.",
     "description": "Hint under the Via compatibility checkbox in the new-account wizard."
   },
   "DescriptionViaLocked": {

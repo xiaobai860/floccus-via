@@ -999,6 +999,12 @@
   "StatusAuthorizationneeded": {
     "message": "需要登入"
   },
-  "DescriptionViaCompatibleNoEncrypt": "Via 只能讀取 Netscape 格式的 HTML。勾選後將隱藏上方的「密碼短語」與「檔案格式」，並將路徑預填為 Via/bookmarks.html、格式鎖定為 HTML。啟用後此處無法關閉；若要改回官方格式，請刪除本帳號後新增一個未勾選的帳號。",
-  "DescriptionViaLocked": "Via 相容已啟用，因此「密碼短語」與「檔案格式」已隱藏：Via 只能讀取未加密的 HTML，格式固定為 HTML。若要改回官方格式，請刪除本帳號後新增一個未勾選 Via 相容的帳號。"
+  "DescriptionViaCompatibleNoEncrypt": {
+    "message": "Via 只能讀取 Netscape 格式的 HTML。勾選後將隱藏上方的「密碼短語」與「檔案格式」，並將路徑預填為 Via/bookmarks.html、格式鎖定為 HTML。啟用後此處無法關閉；若要改回官方格式，請刪除本帳號後新增一個未勾選的帳號。",
+    "description": "新增帳號精靈裡 Via 相容勾選框下方的說明。"
+  },
+  "DescriptionViaLocked": {
+    "message": "Via 相容已啟用，因此「密碼短語」與「檔案格式」已隱藏：Via 只能讀取未加密的 HTML，格式固定為 HTML。若要改回官方格式，請刪除本帳號後新增一個未勾選 Via 相容的帳號。",
+    "description": "帳號設定頁裡 Via 相容已啟用時顯示的說明。"
+  }
 }
