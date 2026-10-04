@@ -648,12 +648,6 @@
   "DescriptionViaCompatible": {
     "message": "Turn this on when the bookmark file is also used by the Via browser on your phone (e.g. synced through 坚果云/WebDAV). Floccus then flattens Via's single wrapping root folder, writes the standard Netscape file header and ADD_DATE, and drops its own ID/TAGS attributes, so both sides keep writing the same file without corrupting each other."
   },
-  "LabelViaRootFolder": {
-    "message": "Via root folder name (optional)"
-  },
-  "DescriptionViaRootFolder": {
-    "message": "Via wraps the whole bookmark tree in one root folder, and syncing that name back keeps both sides symmetrical. Leave empty to always reuse the name found in the file (e.g. yijia5)."
-  },
   "LabelSearch": {
     "message": "Search bookmarks"
   },

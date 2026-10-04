@@ -128,13 +128,19 @@
           role="note">
           {{ t('DescriptionViaLocked') }}
         </div>
-        <v-text-field
-          class="mt-2"
-          :value="via_root_folder"
-          :label="t('LabelViaRootFolder')"
-          :hint="t('DescriptionViaRootFolder')"
-          :persistent-hint="true"
-          @input="$emit('update:via_root_folder', $event)" />
+        <!--
+          这里原来有一个「Via 根文件夹名」输入框（via_root_folder），已删除。
+          实测用户的真实文件（fixtures/via-real、via-newroot、floccus-real）顶层都是
+          Bookmarks Bar / Other Bookmarks / 移动收藏夹 这种**三平级**结构，
+          findSingleRootFolder 全部不触发 → 根文件夹名留空就是正确行为。
+          而它反而是有害的：填了会让 serialize 在文件外面强行再包一层（rootFolderName
+          优先级最高），Via 那边会看到结构变了。
+          ⚠️ 注意：**只删了这个输入框，不要动 HtmlVia.ts 里的自动机制**
+          （findSingleRootFolder + lastRootFolderName + ROOT_DATE_KEY）。
+          万一 Via 哪天把文件变成「单一根包装」形态（例如用户只留一个顶层目录），
+          那套机制会自动认出根名字并原样包回去；删掉它就会静默丢掉那层包装。
+          WebDav.getDefaultValues 里的 via_root_folder 字段也保留（getData() 回落链要用）。
+        -->
       </v-card-text>
     </v-card>
 
@@ -303,7 +309,8 @@ export default {
     'allowRedirects',
     'bookmark_file_type',
     'via_compatible',
-    'via_root_folder',
+    // 'via_root_folder' 已从 props 移除：界面上不再有该输入框（理由见模板里的说明）。
+    // WebDav.getDefaultValues() 里的该字段仍然保留，getData() 回落链与自动机制都还用到。
     'enabled',
     'label',
     'syncIntervalEnabled',

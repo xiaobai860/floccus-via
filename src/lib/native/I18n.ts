@@ -8,6 +8,8 @@ import SIMPLIFIED_CHINESE_MESSAGES from '../../../_locales/zh/messages.json'
 // hehe, ignore all the things...
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
+// CACHEBUST: 语言包变更后 touch 本文件即可让 webpack 重建全部语言包 chunk
+// （babel-loader 有 cacheDirectory，直接改 _locales 不会触发重编 —— 实测踩过）
 const context = require.context(
   '../../../_locales',
   true,

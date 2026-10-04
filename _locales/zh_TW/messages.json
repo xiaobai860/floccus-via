@@ -936,9 +936,6 @@
   "DescriptionViaCompatible": {
     "message": "當書籤檔同時也被你手機上的 Via 瀏覽器使用（例如透過堅果雲／WebDAV 同步）時，請開啟此選項。此時 floccus 會將 Via 那層「單一根包裝資料夾」拍平，寫出標準 Netscape 檔案標頭與 ADD_DATE，並且不再寫入自己的 ID／TAGS 屬性，讓兩端始終寫同一份檔案而不互相破壞。"
   },
-  "DescriptionViaRootFolder": {
-    "message": "Via 會把整棵書籤樹包在一個根資料夾裡，把這個名稱原樣寫回去才能讓兩端對稱。留空表示一律沿用檔案中讀到的名稱（例如「一加5」）。"
-  },
   "LabelAdapterdropbox": {
     "message": "Dropbox"
   },
@@ -992,9 +989,6 @@
   },
   "LabelViaCompatible": {
     "message": "以 Via 瀏覽器使用的原生 Netscape 格式讀寫書籤檔"
-  },
-  "LabelViaRootFolder": {
-    "message": "Via 根資料夾名稱（選填）"
   },
   "StatusAuthorizationneeded": {
     "message": "需要登入"
