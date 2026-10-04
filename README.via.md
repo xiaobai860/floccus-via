@@ -548,6 +548,20 @@ git fetch origin
 
 这正是我们要的：**历史只能前进，不能被抹掉**。但也意味着推送前要多看一眼 `git status` 和 `git log --oneline -3`。
 
+**实战案例（真踩过，不是吓唬）**：给分支做保护验证时，我推了一个测试提交 `2bcf70a5` 到 `README.upstream.md`，发现普通推送不受影响后就在本地 `git reset --hard` 把它删了。结果远端那个提交**删不掉了**——本地和远端从此分叉，普通推送被拒（`non-fast-forward`），force push 又被 ruleset 禁，**卡死**。
+
+正确解法（两步，全程无 force）：
+
+```bash
+git fetch fork my-viasync
+git merge --no-edit fork/my-viasync   # ① 先合并，恢复快进关系（内容无所谓）
+# ② 再用新提交把测试痕迹盖掉
+git commit -am "chore: 清除验证留下的标记"
+git push fork develop:my-viasync     # ③ 正常推送，success
+```
+
+顺带一条判断：**「推之前先想好能不能撤」**。保护规则启用后，验证性提交要么别推，要么推之前就想好怎么盖。
+
 **万一真要改写历史怎么办**（比如误推了含密钥的提交）：
 
 ```bash
