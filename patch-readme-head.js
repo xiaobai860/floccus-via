@@ -32,14 +32,15 @@ const CARD = [
   '',
   '## 🚀 三分钟上手',
   '',
-  '1. **装扩展** — Edge / Chrome 打开 `chrome://extensions/` → 开发者模式 → 「加载已解压的扩展程序」，'
-    + '选中本仓库里的 `floccus-via/` 目录（也可以直接把打包产物 `floccus-via.crx` 拖进窗口）。',
-  '2. **配同步** — 选项页 → 新建 WebDAV 账号 → 地址填坚果云 `https://dav.jianguoyun.com/dav/`，'
-    + '路径填 `bookmarks.html`。',
-  '3. **开 Via 开关** — 同一个 WebDAV 卡片里勾上「Via 浏览器兼容」，可顺手指定 Via 中的根文件夹名。'
-    + '**勾上才走 Via 格式，不勾仍是 floccus 官方原格式。**',
+  '1. **装扩展** — Edge 打开 `edge://extensions/`、Chrome 打开 `chrome://extensions/` → 开启「开发者模式」→ '
+    + '点「加载已解压的扩展程序」，选中本仓库里的 `floccus-via/` 目录。**两个浏览器装法完全一样。**',
+  '2. **建同步账号** — 选项页 → 新建账号 → 适配器选 **WebDAV** → 地址填坚果云 `https://dav.jianguoyun.com/dav/`，'
+    + '用户名密码用坚果云的「应用密码」。',
+  '3. **勾「Via 浏览器兼容」** — 就在向导页的这个 WebDAV 表单里。勾上之后书签文件会**自动填成 `Via/bookmarks.html`**、'
+    + '文件格式**锁定为 HTML 且整个选择框消失**（Via 只能读未加密的 Netscape 格式 HTML）。'
+    + '**这个开关只能开不能关，想换回官方格式就删号重建。**',
   '',
-  '> ⚠️ 第一次同步之前，先读一遍 [README.via.md](README.via.md) 第一章《第一次同步要注意》。',
+  '> ⚠️ 第一次同步之前，先读一遍 [README.via.md](README.via.md) 第四章《第一次同步要注意》。',
   '',
   '## 📚 文档导航',
   '',
@@ -48,6 +49,7 @@ const CARD = [
   '| 完整中文说明（**推荐入口**） | [README.via.md](README.via.md) — 改动清单、同步流程、验收清单、常见问题 |',
   '| 同步上游 floccus 新版本后要做什么 | [README.via.md](README.via.md) 第九章 + 第十一章《同步后的验收清单》 |',
   '| 排查 Via 同步错乱 / 书签乱序 | [README.via.md](README.via.md) 第十一章 P1 清单（按危险度排序） |',
+  '| 为什么设置页看不到「密码短语」和「文件格式」 | [README.via.md](README.via.md) 第十一章 11.11 |',
   '| 上游原项目 README（英文、官方） | [README.upstream.md](README.upstream.md) |',
   '',
   '## 🛠 本地常用命令',
@@ -55,7 +57,7 @@ const CARD = [
   '```bash',
   'node sync-upstream.js          # 同步上游前先体检：哪些文件会冲突',
   'npx gulp build                 # 编译到 dist/',
-  'node pack-for-chrome.js        # 产出 floccus-via.crx（拖拽即装）+ zip',
+  'node pack-for-chrome.js        # 产出交付物 zip（Chrome / Edge 通用）',
   'node check-i18n.js             # 中文文案缺不缺',
   'node check-official-compat.js  # 不开 Via 时输出是否仍与官方逐字节一致',
   'node check-zip.js && node audit-extension.js   # 交付物自检',

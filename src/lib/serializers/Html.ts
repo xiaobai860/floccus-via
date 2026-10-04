@@ -22,17 +22,17 @@ import {
 // 保持对外类型导出不变（WebDav 等调用方按名字引用）
 export type { IHtmlSerializerOptions }
 
-/**
- * ★ 同步上游前先看这里 ★
+/*
+ * ★ 同步上游 floccus 前先看 HtmlVia.ts 顶部的「冲突面清单」★
  *
- * 本文件对上游的改动只有下面标了 VIA-HOOK 的 6 处，其余全是官方原代码。
- * 所有 Via 业务逻辑（稳定哈希 ID、ADD_DATE 记忆、根包装识别、Via 文件头、转义）
- * 都在同目录的 HtmlVia.ts 里——那是纯新增文件，上游没有，永远不会起冲突。
+ * 本文件对上游的改动只有 6 处，源码里标了 `VIA-HOOK n/6`。每处只留一行标记，
+ * 详细说明（每个 hook 改了什么、冲突时怎么处理、最高危的外部依赖 murmurhash3）
+ * 全部放在 HtmlVia.ts 顶部 —— 那样做有两个原因：
+ *   1) HtmlVia.ts 是纯新增文件，上游没有，永远不会起冲突，注释不会跟着上游改；
+ *   2) 注释堆在上游代码上方会扩大 git 的冲突块，上游动那几行时会把整段注释
+ *      一起拉进冲突，而冲突里真正需要人做二选一的只有代码行。
  *
- * 合并上游时如果某个 VIA-HOOK 点和上游新代码撞了，只有两种要处理的情形：
- *   1) 上游改了函数签名 → 把我们的可选参数合并回去即可（默认值仍是不传=官方行为）；
- *   2) 上游改了渲染/解析主体 → 看我们的分支还能不能并排保留。
- * 除了这 6 处之外的任何冲突，直接接受上游版本，别去动 Via 逻辑。
+ * 除这 6 处之外的任何冲突，直接接受上游版本，别去动 Via 逻辑。
  */
 
 class HtmlSerializer implements Serializer {
@@ -66,8 +66,7 @@ class HtmlSerializer implements Serializer {
     return string.replace(/[<>&"']/g, char => '&#' + char.charCodeAt(0) + ';')
   }
 
-  /* VIA-HOOK 2/6 书签行 / 文件夹行的 Via 分支。两种格式的结构一样，只是属性不同：
-     官方 `ID="x" TAGS="y"` ↔ Via `ADD_DATE="d"`（文件夹行补 ADD_DATE）。 */
+  /* VIA-HOOK 2/6 书签行/文件夹行的 Via 分支（官方 ID+TAGS ↔ Via ADD_DATE）。详见 HtmlVia.ts */
   _serializeFolder(folder, indent, options: IHtmlSerializerOptions = {}) {
     const via = Boolean(options.viaCompatible)
     return folder.children
@@ -108,13 +107,11 @@ class HtmlSerializer implements Serializer {
       .join('')
   }
 
-  /* VIA-HOOK 3/6 参数新增 + 每次解析重置根名兜底（否则上一份文件的根名会串到下一棵无关的树上）。 */
+  /* VIA-HOOK 3/6 参数新增 + 每次解析重置根名兜底（不重置会让上一次的根名串到下一棵树）。详见 HtmlVia.ts */
   deserialize(html, options: IHtmlSerializerOptions = {}): Folder<typeof ItemLocation.SERVER> {
     const opts = { ...DEFAULT_OPTIONS, ...options }
     const { items, rootName } = parseByString(html, opts)
     items.forEach(f => { f.parentId = '0' })
-    // 每次解析都重置这个兜底值：否则上一个账号 / 上一个文件读到的根名会残留，
-    // 让 serialize 给一棵无关的树错误地包上别人的根文件夹。
     setLastRootFolderName(rootName || '')
     if (rootName) {
       const root = new Folder({
@@ -173,7 +170,7 @@ export const getRootFolder = (body: cheerio.Cheerio<any>) => {
   return body.children('dl').first()
 }
 
-/* VIA-HOOK 4/6 参数新增。下面的根包装拍平用 HtmlVia.findSingleRootFolder，判定逻辑在那边。 */
+/* VIA-HOOK 4/6 参数新增。根包装拍平用 HtmlVia.findSingleRootFolder，判定逻辑在那边。详见 HtmlVia.ts */
 export const parseByString = (content: string, options: IHtmlSerializerOptions = {}) => {
   const opts = { ...DEFAULT_OPTIONS, ...options }
   const via = Boolean(opts.viaCompatible)
@@ -204,8 +201,7 @@ export const parseByString = (content: string, options: IHtmlSerializerOptions =
     }
   }
 
-  /* VIA-HOOK 5/6 idOverride：Via 导出没有 ID，改由 HtmlVia.deriveViaId 派生稳定哈希顶替，
-     否则官方的自增编号每轮从 1 重新开始，映射表全部失效、书签被反复当新增（越同步越乱）。 */
+  /* VIA-HOOK 5/6 idOverride：Via 导出没有 ID，改由 HtmlVia.deriveViaId 派生稳定哈希顶替。详见 HtmlVia.ts */
   const parseNode = (
     node: cheerio.Cheerio<any>,
     parentId?: string | number,
@@ -245,10 +241,7 @@ export const parseByString = (content: string, options: IHtmlSerializerOptions =
     }
   }
 
-  // 同层子节点一起遍历：先数一遍标题，只有出现同级重名时（Via 的导出里就有一对
-  // 「免root玩机」）才把序号混进派生 ID，否则两条同名文件夹会撞成同一个 ID 互相覆盖；
-  // 没重名时不掺序号，用户手动调整顺序也不会让 ID 变动。
-  /* VIA-HOOK 6/6 改成同级批量遍历（先数一遍标题），只有真出现同级重名时才把序号混进 ID。 */
+  /* VIA-HOOK 6/6 改成同级批量遍历（先数一遍标题），只有真出现同级重名时才把序号混进 ID。详见 HtmlVia.ts */
   const parseDL = (dl: cheerio.Cheerio<any>, parentId?: string | number) => {
     const dts = dl
       .children('dt')

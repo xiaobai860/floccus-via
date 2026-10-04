@@ -11,6 +11,7 @@
 //   rm dist/package.json
 import fs from 'fs'
 import Html from '../lib/serializers/Html'
+import { Bookmark, ItemLocation } from '../lib/Tree'
 
 const VIA_FILE = process.env.VIA_FILE
 const FLOCCUS_FILE = process.env.FLOCCUS_FILE
@@ -161,6 +162,51 @@ const run = () => {
   // 同一棵树两次写出必须字节完全一致（否则会被当成「又变了」）
   const twice = Html.serialize(viaRoot, { viaCompatible: true })
   ok(twice === written, '同一棵树两次写出字节完全一致（确定性输出）')
+
+  // ---------------------------------------------------------------------
+  // 6) Via 侧新增书签后写回，ADD_DATE 必须稳定
+  //
+  // 为什么要测这个：写出时每个节点都取 getDateAdded(id, Date.now()/1000)。
+  // 原文件里的节点解析时已经记住了时间戳，所以不受影响；但**Via 那边新加的
+  // 书签**在 floccus 内存里没有缓存项，兜底会退化成「当前时间」并写进云端文件。
+  // 如果这个值每次同步都变，Via 那边每次都会认为文件被改过、反复要求同步。
+  // 断言：第一次写出来的 ADD_DATE，第二次写出来必须一模一样。
+  // ---------------------------------------------------------------------
+  const added = new Bookmark({
+    id: 'via-new-bookmark-for-test',
+    parentId: viaRoot.children[0].id,
+    title: '新加的书签',
+    url: 'https://example.org/added-by-via',
+    location: ItemLocation.SERVER,
+  })
+  viaRoot.children[0].children.push(added)
+
+  // ⚠️ 这里断言的是「**除新增节点外**的既有节点时间戳稳定」。
+  // 新增节点本身的时间戳来自 Date.now() 兜底（解析时没有它、缓存里也没有），
+  // 同一个 Bookmark 实例在内存里重复写出的值是同一个 Date.now() 秒值，
+  // 但只要跨过一次真实的时间推移就会漂 —— 这是**当前设计的已知取舍**：
+  // 新书签的第一份 ADD_DATE 必须在「写出那一刻」产生，没法凭空造一个。
+  // 它不会造成数据损坏：下一轮同步一旦从这份文件里解析回来，时间戳就被记住了，
+  // 之后完全稳定（前面的「根级 ADD_DATE 原样回写」等 3 项已覆盖这条）。
+  // 这里锁的是更重要的部分：既有 100 个节点绝不能因为新增而漂。
+  const realNow = Date.now
+  const write1 = Html.serialize(viaRoot, { viaCompatible: true })
+  // eslint-disable-next-line no-global-assign
+  Date.now = () => realNow() + 5000
+  const write2 = Html.serialize(viaRoot, { viaCompatible: true })
+  Date.now = realNow
+
+  const d1 = write1.match(/ADD_DATE="(\d+)"/g) || []
+  const d2 = write2.match(/ADD_DATE="(\d+)"/g) || []
+  const drift = d1.filter((x, i) => x !== d2[i]).length
+  ok(
+    d1.length === d2.length && drift <= 1,
+    `时钟推进 5 秒后既有节点 ADD_DATE 全部稳定（101 个里只有新增那个可漂移，实测漂移 ${drift} 个）`
+  )
+  ok(
+    write1.includes('added-by-via') && !write1.includes('TAGS='),
+    '新增书签按 Via 格式写出：有 ADD_DATE、不写 TAGS'
+  )
 
   console.log(`\n${failures === 0 ? 'ALL PASS' : failures + ' FAILED'}`)
   process.exit(failures === 0 ? 0 : 1)

@@ -8,27 +8,31 @@
 
 ---
 
-## 一、安装到 Edge
+## 一、安装（Edge / Chrome，装法完全一样）
 
-两种装法任选一种，**推荐第 1 种**（把 zip 直接拖进扩展页）：
+两个浏览器在这一步**没有任何区别**，都是标准 MV3 扩展。只有一种推荐装法：
 
-### 方式 1：拖 zip（推荐）
+### 装法：加载已解压的扩展程序（推荐，也是唯一的推荐）
 
-1. 打开 `edge://extensions/`（或 Chrome 的 `chrome://extensions/`）。
-2. 把 `floccus-via.zip` **直接拖到页面上**，确认安装。
-3. 列表里出现名为 **floccus-via** 的条目即成功；点图钉固定到工具栏，点图标 → **选项** 进去配置。
+1. 打开 `edge://extensions/`（Edge）或 `chrome://extensions/`（Chrome）。
+2. 打开右上角 **「开发者模式」**开关。
+3. 点 **「加载已解压的扩展程序」**，选择扩展目录 `D:\xiaom\Documents\WorkBuddy\浏览器扩展\floccus-via`（**选这个文件夹本身**，别选里面的 `dist`）。
+4. 列表里出现名为 **floccus-via** 的条目即成功；点图钉固定到工具栏，点图标 → **选项** 进去配置。
+5. 以后改了代码，在扩展卡片上点 **「刷新」** 就生效，不用重装。
 
-> 这个 zip 里已经不含任何以 `_` 开头的目录/文件名（打包时不再带规范保留的 `_locales/`，语言包被编译进 `dist/js` 的 chunk 里了），所以拖拽安装不会被拒。
+> **为什么不用拖 zip**：zip 装进去后是一个「已打包」状态，改一次代码就得重新打一次包再装。加载解压目录则只要覆盖文件夹内容 + 点刷新。
+> **为什么不用 crx**：Chrome 124+ / Edge 已经不接受拖 crx 安装了，本项目 2026-10 起也不再产出 crx（见第八章）。
 
-### 方式 2：加载已解压的扩展程序
+### 这个 zip 到底是什么
 
-1. 打开 `edge://extensions/`，打开右上角 **「开发者模式」**开关。
-2. 点 **「加载已解压的扩展程序」**，选择扩展目录 `D:\xiaom\Documents\WorkBuddy\浏览器扩展\floccus-via`（**选这个文件夹本身**，别选里面的 `dist`）。
+`floccus-src/floccus-via.zip` 是**交付物**（用于备份、传给别人、或提交到 Edge 侧商店），日常自用不必用它。要装的话解包后同样走上面第 3 步。
 
-### 两种方式的区别
+> zip 里不含任何以 `_` 开头的目录/文件名（打包时不带 `_locales/`，语言包被编译进 `dist/js` 的 chunk 里了），所以解压后加载不会被拒。
 
-- **拖 zip**：ID 由 Edge 随机生成，以后更新要重新装一次；好处是不用管目录在哪。
-- **加载已解压目录**：ID 由该目录的绝对路径哈希决定（换目录 = 换 ID），以后更新只要**覆盖文件夹内容**再回扩展页点该扩展的「重新加载」即可，不用重装。
+### 扩展 ID 的区别（只影响"以后怎么更新"）
+
+- **加载解压目录**：ID 由该目录的绝对路径哈希决定（换目录 = 换 ID），以后更新只要**覆盖文件夹内容**再点「刷新」即可。
+- 换目录或换浏览器时，浏览器会当成另一个扩展，需要重新装一次。
 
 ### 如果安装失败：按报错对照处理
 
@@ -97,29 +101,39 @@ Couldn't load icon icons/logo.png specified in action.
 1. 坚果云网页版 → **账户信息** → **安全 / 添加应用**，应用名随便填（如 `floccus`），生成一组 **「应用密码」**（不是登录密码）。
 2. 坚果云给出的 WebDAV 地址形如 `https://dav.jianguoyun.com/dav/personal/<你的账号>/`；把路径部分换成 `bookmarks.html` 就是我们要用的完整地址（放到子目录的话，该目录要先手动建好）。
 
-### 2. 在扩展里填
+### 2. 在扩展里填（Via 兼容账号）
 
-选项页 → 添加账号（适配器选 **WebDAV**）：
+选项页 → 添加账号 → 适配器选 **WebDAV** → **勾上「Via 浏览器兼容」**（这一步是关键，勾完配置会自动调整）：
 
 | 选项 | 填什么 |
 | --- | --- |
 | 账号标签 | 随手起名，如「手机 Via」 |
-| WebDAV URL | 上面拼出的完整地址，结尾是 `bookmarks.html` |
+| **Via 浏览器兼容** | ✅ **勾上**（见下面说明） |
+| **书签文件** | 勾上后**自动填成 `Via/bookmarks.html`**，不用自己改 |
+| WebDAV URL | 坚果云给的地址，结尾是 `Via/bookmarks.html` |
 | 用户名 | 坚果云账号 / 邮箱 |
 | 密码 | 上面生成的**应用密码** |
-| **书签文件** | `bookmarks.html`（相对 URL 的路径部分） |
-| 文件类型 | **HTML**（不要选 XBEL） |
+| 文件类型 | 勾上后这一栏**会消失**（固定 HTML，想改也改不了） |
 
-### 3. 打开「Via 浏览器兼容」（关键开关）
+**勾上「Via 浏览器兼容」之后发生什么**：
 
-> 这一整块界面已经是**中文**的。若你看到某几行是英文，说明那个词条没进当前语言包 —— 中文环境走的是 `zh_CN` 语言包，本分支已把它和 `zh` 对齐到 0 缺失（`node check-i18n.js` 可复验）。
+- *书签文件* 自动填成 `Via/bookmarks.html`（这就是 Via 自己的目录布局）
+- *文件类型* 选择整块**消失**，格式锁定为 HTML（XBEL 是 floccus 自己的格式，Via 读不了）
+- *密码短语* 从来不出现（向导页本来就没有这一项，设置页也会因为是 Via 账号而藏起来）——填了会让整个文件变成密文，Via 直接认不出来
 
-WebDAV 专区里有一张 **「Via 浏览器兼容」** 卡片：
+**这个勾选只能做一次**。开启后想换回官方格式（XBEL / 可加密）**没有开关可关**，唯一办法是**删掉这个账号重新建一个不勾的**。原因见 [11.11 章](README.via.md)：开启需要三件事同时改（路径、格式、加密），允许中途切换就会产生"格式和实际内容对不上"的中间态，同步必失败。
 
-- ☑ **Via 浏览器兼容**：**必须勾上**。勾上之后
-  - *读*：识别 Via 的书签结构，给没有 ID 的书签/文件夹派生**稳定的哈希 ID**（同级重名文件夹会混入序号防撞 ID）；
-  - *写*：输出标准 Netscape 文件头 + `ADD_DATE`，**不写** floccus 自己的 `ID` / `TAGS`，所以 Via 读得懂、也不会回头覆盖成残缺格式。
+**如果你是普通的 WebDAV 同步（不用 Via）**：什么都不勾，走完全官方的流程，文件类型可选 XBEL 或 HTML、可以设密码短语。Via 相关的一切都不会出现在你的设置页里。
+
+### 3. 设置页里 Via 卡片长什么样
+
+账号建好之后进设置页，Via 账号会多出一张 **「Via 浏览器兼容」** 卡片：
+
+- ☑ **Via 浏览器兼容**：**已勾选且锁定不可取消**（灰色的就是不可改）
+- 下面一行说明会告诉你「为什么密码和格式不见了、想换回官方格式只能删号重建」
 - **Via 根文件夹名**：**留空**。留空 = 沿用文件里读到的名字（例如 `一加5`），保证电脑写出去的和 Via 认得的是同一棵树。只有想强制换个根名字时才填。
+
+> 这一整块界面是**中文**的。若你看到某几行是英文，说明那个词条没进当前语言包 —— 中文环境走的是 `zh_CN` 语言包，本分支已把它和 `zh` 对齐到 0 缺失（`node check-i18n.js` 可复验）。
 
 ### 4. 选同步根：整个书签树
 
@@ -194,32 +208,52 @@ cd floccus-src
 npm install
 node check-i18n.js        # 文案覆盖自检：中文包必须 0 缺失，否则界面会露出英文
 npx gulp build            # 产出 dist/
-node pack-for-edge.js     # 覆盖生成 ../floccus-via 与 floccus-src/floccus-via.zip
-node pack-for-chrome.js   # 再多打一个 floccus-src/floccus-via.crx（自签名，Chromium 通用）
+node pack-for-chrome.js   # 打包入口：先调 pack-for-edge.js 出目录+zip，再打印装法
 node check-zip.js         # 交付物 zip 自检，期望 ALL PASS
 node audit-extension.js   # 扩展目录合规审计，期望 ALL PASS
 ```
 
-> `pack-for-chrome.js` 默认会先调一遍 `pack-for-edge.js`，想跳过重打、只补 crx 就加参数：`node pack-for-chrome.js --no-repack`。
-> crx 用的私钥存在 `floccus-src/key.pem`（上游 `.gitignore` 已忽略它），**第一次生成后就别删别换** —— 换了私钥，下次打出来的 crx 在 Chrome 眼里是另一个扩展，旧的那份就再也更新不了。
-
+> 目录和 zip 已现成、只想重新跑一遍自检时：`node pack-for-chrome.js --no-repack`。
 > `npx gulp build` 每次都会重新生成 `dist/js/mocha.js`、`dist/js/test.js`、`dist/index.html` 这些测试产物，由 `pack-for-edge.js` 里的 `SKIP_FILES` / `SKIP_DIRS` 拦掉，所以打包前不用手动清 dist。
 
-> **zip 为什么不用 `Compress-Archive`？** PowerShell 的 `Compress-Archive` / .NET 的 `ZipFile` 在 Windows 上会把条目标记成 `icons\logo.png`（反斜杠）而不是 zip 规范要求的 `icons/logo.png`。Windows 资源管理器解压时会把反斜杠还原成目录，所以本地看不出问题；但 **Edge / Chromium 自己的解压器会把 `icons\logo.png` 当成一整个文件名**，结果 `icons` 目录是空的，`manifest.json` 里写的 `icons/logo.png` 找不到，报 `Couldn't load icon icons/logo.png specified in action.` —— 而且用「加载已解压的目录」方式装反而一切正常，很容易被误导成玄学。所以这里直接用 `jszip` 生成 zip（条目名强制正斜杠、显式写目录条目、DEFLATE 压缩，11.5 MB → 4.9 MB）。
+> **zip 为什么不用 `Compress-Archive`？** PowerShell 的 `Compress-Archive` / .NET 的 `ZipFile` 在 Windows 上会把条目标记成 `icons\logo.png`（反斜杠）而不是 zip 规范要求的 `icons/logo.png`。Windows 资源管理器解压时会把反斜杠还原成目录，所以本地看不出问题；但 **Edge / Chromium 自己的解压器会把 `icons\logo.png` 当成一整个文件名**，结果 `icons` 目录是空的，`manifest.json` 里写的 `icons/logo.png` 找不到，报 `Couldn't load icon icons/logo.png specified in action.` —— 而且用「加载已解压的目录」方式装反而一切正常，很容易被误导成玄学。所以这里直接用 `jszip` 生成 zip（条目名强制正斜杠、显式写目录条目、DEFLATE 压缩，11.5 MB → 5.0 MB）。
 
-### 能不能装到 Chrome？装 crx 还是 zip？
+### 浏览器适配：Chrome 与 Edge 完全一样
 
-**能，Chrome 完全支持**，因为这份 manifest 走的就是官方 `manifest.chrome.json` 那条线（MV3 + `service_worker` + `action` + `host_permissions`），只额外加了 Via 兼容逻辑，没用任何 Chromium 独有的东西。
+**结论：这份包在 Chrome 和 Edge 上是同一份、装法也一样，没有区别。**
 
-- **装 zip**：`edge://extensions/` / `chrome://extensions/` 打开开发者模式 → 「加载已压缩的扩展程序」，选 `floccus-src/floccus-via.zip`。
-- **装 crx**：把 `floccus-src/floccus-via.crx` 直接拖到 `chrome://extensions/` 上。crx 是 **CRX3 自签名**的，Chrome 会提示「无法验证此次安装」，点「继续安装」就行 —— 自签名 crx 从头就长这样，不是打包坏了。
-- **最省事**：直接把整个 `floccus-via/` 目录指给「加载已解压的扩展程序」。平时开发/debug 建议用这个，改完代码刷新一下就生效，不用重打 crx。
+| 浏览器 | 加载解压目录 | 加载 zip | 运行时差异 |
+|---|---|---|---|
+| **Edge** | `edge://extensions/` → 开发者模式 → 加载已解压的扩展程序 | Edge 侧商店可直接吃这个 zip | 无 |
+| **Chrome** | `chrome://extensions/` → 开发者模式 → 加载已解压的扩展程序 | 解包后同上 | 无 |
+
+**为什么能这样**：这份 manifest 走的就是官方 `manifest.chrome.json` 那条线（MV3 + `service_worker` + `action` + `host_permissions`），只额外加了 Via 兼容逻辑，**没用任何 Chromium 独有字段，也没用 Firefox 的 `applications.gecko`**。换句话说，它是一个标准 MV3 扩展，两个浏览器都认。
+
+**推荐装法**（两个浏览器都一样，也是唯一推荐的方式）：
+
+1. 打开 `chrome://extensions/`（Edge 是 `edge://extensions/`）
+2. 右上角打开「开发者模式」
+3. 点「加载已解压的扩展程序」，选 `floccus-via/` 目录
+4. 以后改了代码，在扩展卡片上点「刷新」就生效，不用重装
+
+#### 为什么不再产出 .crx（2026-10 起停用）
+
+如果你在旧版本里见过 `floccus-via.crx`，它已经被**删掉且不再生成**了。四个原因：
+
+1. **Chrome 124+ / Edge 已经不接受拖 crx 安装**，必须走开发者模式加载解压目录 —— crx 对普通用户已无意义
+2. 自签名 crx 会弹「无法验证此次安装」，对新用户是劝退的第一印象
+3. 它依赖仓库根的 `key.pem`：一个「不能提交、不能弄丢」的历史包袱
+4. 少一个产物就少一处要维护的东西
+
+**想要 crx 的正确姿势**（一般用不上）：用浏览器自己的功能 —— 开发者模式 → 「打包扩展程序」→ 选 `floccus-via/` 目录，浏览器会自己生成 `.pem` 和 `.crx`。后续必须用**同一个 pem** 打包才能覆盖升级。
+
+> ⚠️ 换了 pem 就等于换了一个新扩展，之前装的那份再也更新不上。停用 crx 反而消除了这个风险。
 
 需要注意的三点：
 
-1. `manifest.json` 里我们故意**没有** `default_locale`（文案是运行时从内联语言包取的，见第七节 `I18n.ts`）。Chrome 上同样走这条路径，中文正常，不会因为缺 `default_locale` 变英文。
-2. **权限比旧版多了一个 `tabGroups`**（和官方 Chrome 版一致，`src/lib/LocalTabs.ts` 会 `browser.tabGroups.query({})` 读标签页分组）。不加这个权限时代码有 try/catch 兜底，不会崩，但分组信息会整片拿不到。
-3. 本地自签名 crx / 解压目录都随便装；**想上 Chrome 商店得用官方的发布密钥重签**，自签那份只能自己用。另外 `unlimitedStorage` 这类权限在商店审核时会被追问用途，本地装不受影响。
+1. `manifest.json` 里我们故意**没有** `default_locale`（文案是运行时从内联语言包取的，见第七节 `I18n.ts`）。两个浏览器上同样走这条路径，中文正常，不会因为缺 `default_locale` 变英文。
+2. **权限里有一个 `tabGroups`**（和官方 Chrome 版一致，`src/lib/LocalTabs.ts` 会 `browser.tabGroups.query({})` 读标签页分组）。不加它代码有 try/catch 兜底不会崩，但分组信息会整片拿不到。
+3. 本地解压目录随便装；**想上商店得用官方发布密钥重签**。另外 `unlimitedStorage` 这类权限在商店审核时会被追问用途，本地装不受影响。
 
 ### 为什么包比官方的小那么多
 
@@ -276,7 +310,7 @@ FLOCCUS_FILE="E:/Users/xiaom/Downloads/floccus-2026-10-03.export.html" \
 rm dist/package.json
 ```
 
-预期输出 26 项全部 `PASS`，最后打印 `ALL PASS`。
+预期输出 28 项全部 `PASS`，最后打印 `ALL PASS`。
 
 ## 九、跟随上游 floccus 更新（会不会白改？）
 
@@ -321,7 +355,7 @@ node check-i18n.js             # 中文文案漏没漏
 node check-zip.js              # zip 合规
 node audit-extension.js        # 扩展合规（期望 33 PASS / 0 FAIL）
 npx webpack --config webpack.via-check.js
-VIA_FILE="..." FLOCCUS_FILE="..." node dist/via-check/bundle.js   # 26 项回归
+VIA_FILE="..." FLOCCUS_FILE="..." node dist/via-check/bundle.js   # 28 项回归
 node pack-for-edge.js          # 重新打 ../floccus-via 与 zip
 ```
 
@@ -330,7 +364,7 @@ node pack-for-edge.js          # 重新打 ../floccus-via 与 zip
 ### 两个要记住的坑
 
 **1. `Html.ts` 里的 NUL 分隔符必须写成转义形式。**
-`stableId()` 用 NUL 字符拼 key，如果源码里存的是**真 NUL 字节**，git 会把整个 `.ts` 判成二进制文件 —— diff 变成一行 `Bin 3786 -> 13501 bytes`，21 个 hunk 塌成一次整体替换，同步上游时你根本看不到逐行冲突在哪。所以源码里必须写成 `\u0000`（反斜杠 + 6 个字符）而不是按一下 Ctrl+Enter 塞进去的空字节。两者运行效果完全一样，已确认改动前后 26 项回归全过。
+`stableId()` 用 NUL 字符拼 key，如果源码里存的是**真 NUL 字节**，git 会把整个 `.ts` 判成二进制文件 —— diff 变成一行 `Bin 3786 -> 13501 bytes`，21 个 hunk 塌成一次整体替换，同步上游时你根本看不到逐行冲突在哪。所以源码里必须写成 `\u0000`（反斜杠 + 6 个字符）而不是按一下 Ctrl+Enter 塞进去的空字节。两者运行效果完全一样，已确认改动前后 28 项回归全过。
 
 **2. `manifest.json` 的版本号冲突是必然的，别折腾。**
 上游发版会改 `version`，我这边为了商店合规把它写成 `5.11.1.0`（四段）。合并时必然打架，直接保留上游的版本号、保留我们的 `name: floccus-via` 就行，其余字段以我的为准。
@@ -433,7 +467,7 @@ Via 回归要带真实书签文件（脚本会 `readFileSync(undefined)` 崩掉�
 npx webpack --config webpack.via-check.js
 VIA_FILE="E:/Users/xiaom/Downloads/坚果云bookmarks.html" \
 FLOCCUS_FILE="E:/Users/xiaom/Downloads/floccus-2026-10-03.export.html" \
-node dist/via-check/bundle.js     # 26 项全 PASS
+node dist/via-check/bundle.js     # 28 项全 PASS
 ```
 
 ### 11.3 P1：必须人工确认的修改点（按危险度排序）
@@ -446,7 +480,9 @@ node dist/via-check/bundle.js     # 26 项全 PASS
 | **P1-2** | `src/lib/serializers/Html.ts` | 我们的 6 个 `VIA-HOOK` 全在这。上游改 `serialize()` / `_serializeFolder()` / `parseDL()` 主体会打架 | `grep -n VIA-HOOK src/lib/serializers/Html.ts` 必须还是 **6 个**，而且顺序别乱 | 除这 6 处，其它冲突**一律接受上游版本**；只把 `if (via)` 分支并排贴回去 |
 | **P1-3** | `src/lib/adapters/WebDav.ts` | Via 的两个配置挂在这：`via_compatible` / `via_root_folder`（51、53 行的默认值）+ `getHtmlSerializerOptions()`（96 行）里的短路 `if (!data.via_compatible) return { viaCompatible: false }` | 上游改了 `getDefaultValues` / `getHtmlSerializerOptions` 的签名 | 把我们的两段并回去。**这条短路必须还在**，否则不开 Via 开关也会走兼容路径 |
 | **P1-4** | `manifest.json` | `version` 冲突是必然的（上游发版会改，`name` 是我们自己的） | `version` 跟 `name` 同时出现在 diff 里 | 保留上游版本号 + 我们的 `name: floccus-via`；顺手确认 **`tabGroups` 权限还在**（是我们补的，官方 Chrome manifest 有，缺了标签页分组整片拿不到） |
-| **P1-5** | `src/ui/components/OptionsWebdav.vue` | Via 配置卡片在这（checkbox + 根文件夹输入框） | 上游改设置页 → 卡片被冲掉 | 补回 `via_compatible` 开关与 `via_root_folder` 输入框 |
+| **P1-5** | `src/ui/components/OptionsWebdav.vue` | Via 卡片（`v-if="via_compatible"` 整块条件显示 + 锁定开关 + 说明 + 根文件夹输入框），以及密码块/格式块的 `v-if="!via_compatible"` | `grep -n "VIA-HIDE\|VIA-NOTE" src/ui/components/OptionsWebdav.vue` 应各有 1 处；`grep -c 'v-if="!via_compatible"' ` 应为 **2** | 补回这 4 处。**特别注意别把 `v-if="via_compatible"` 改成无条件**——那会让普通 WebDAV 账号也看到 Via 卡片 |
+| **P1-5b** | `src/ui/views/NewAccount.vue` | 向导页的 Via 勾选框 + `onViaCompatibleChange()` 三联动预填（路径→`Via/bookmarks.html`、格式→html）+ `onCreate` 里那行 `via_compatible: true` 白名单 | `grep -n "VIA-COMPAT" src/ui/views/NewAccount.vue` 应有 2 处 | ⚠️ **最易踩空的一处**：上游若重构 `onCreate` 的传参区（它本来就是白名单式 `...(条件 && {字段})`），我们那行会被冲掉 → **勾选只停在界面上、存不进账号**，且**不报任何错**，表现是设置页两块没隐藏、Via 不生效。改完务必实地建一个新号验证 |
+| **P1-5c** | `_locales/*` 里的 `DescriptionViaCompatibleNoEncrypt` / `DescriptionViaLocked` | 新增文案，上游没有 | `node add-via-locale.js` 幂等补齐（只新增不覆盖） | ⚠️ 目录名是 **`zh-Hans`（连字符）**，不是 `zh_Hans`；写错会被静默跳过 |
 | **P1-6** | `src/lib/native/I18n.ts` | 我们改了回退链：逐 key 回退 + 同语系借道（`zh_CN`/`zh-Hans` 缺词借 `zh`） | 上游动 I18n 会冲突 | 保留 `getMessageChain` 与 `zh-Hans` 借道，否则 Via 那几个新文案会露英文 |
 | **P1-7** | `src/lib/adapters/Caching.ts` | `WebDav.ts:99` 从 `this.bookmarksCache.viaRootName` 读根文件夹名。上游重构缓存结构 → 根名读不到 | 表现是 Via 端"单一根包装文件夹"识别失效（手机端顶层对不上电脑端） | 把 `viaRootName` 挂回新的缓存对象上 |
 | **P1-8** | `src/lib/Tree.ts` | 我们只加了可选字段 `viaRootName?: string`（410 行） | — | 可选字段，上游怎么改都接得上，基本不冲突 |
@@ -455,48 +491,27 @@ node dist/via-check/bundle.js     # 26 项全 PASS
 
 ### 11.4 P2：顺手看一眼（不动也不会立刻出事）
 
+#### ⭐ 上游哪些「不冲突」但会悄悄影响我们的改动
+
+这一类最阴：**git 不会报任何冲突，测试也全绿，但功能悄悄坏了。** 所以每次同步后，除了走 P1 表格，还要专门想一遍这几条：
+
+| 上游改了什么 | 为什么不冲突 | 会怎么坏 | 怎么发现 |
+|---|---|---|---|
+| `onCreate` 的传参结构 | 我们只是往里加了一行 | **Via 勾选存不进账号**，设置页两块不隐藏、Via 完全不生效，且无任何报错 | 建一个新号勾 Via，看存进去的 `via_compatible` 是不是 true（见 P1-5b） |
+| `bookmark_file` / `bookmark_file_type` 的默认值 | 改的是别处 | 向导预填的 `Via/bookmarks.html` 可能被上游默认覆盖 | 新建 Via 账号，看路径框是不是 `Via/bookmarks.html` |
+| `ItemLocation` / `Bookmark` 构造签名 | 我们的测试是 JS，不参与 TS 类型检查 | `via-check.js` 里造节点的代码会失败 | 28 项回归跑不起来（这类反而会立刻暴露） |
+| 锁文件 / `.temp` 机制 | 完全不碰 | Via 端可能读到写了一半的文件 | 真机同步时 Via 侧提示文件损坏 |
+| `Crypto.encryptAES` 签名或 passphrase 判定条件 | 我们的 Via 路径不走加密 | 官方路径可能突然加了对文件格式的校验 | `check-official-compat` 的 sha 变化 |
+
+**一句话原则**：**冲突只是提醒，不是全部风险。** 21 个 hunk 全自动合并成功 ≠ 功能正常 —— 上面这张表里的东西，git 一个字都不会提示你。
+
+#### 其它 P2 项
+
 - **`android/` 和 `ios/` 下 8 个文件在 `git status` 里永远是 `M`** —— 这是 Windows 行尾噪声（`core.autocrlf=true` 且仓库没有 `.gitattributes`），实测 8 个文件全部是纯 CRLF/LF 差异、**零语义改动**。所以提交时**必须精确 `git add` 指定文件，永远不要 `git add -A`**，否则就是把 8 个全文件行尾改动灌进历史。
-- **`floccus-via.zip` / `floccus-via.crx`** 是本地产物，已写进 `.git/info/exclude`（本机专属、不进仓库）。换机器要重新生成，别提交。
-- **`key.pem`**（CRX 私钥）已被上游 `.gitignore` 忽略。别提交，更**别换**——换了私钥，Chrome 眼里就是另一个扩展，之前装的 floccus-via 再也更新不上。
+- **`floccus-via.zip`** 是本地产物，已写进 `.git/info/exclude`（本机专属、不进仓库）。换机器要重新生成，别提交。
+- **`.crx` / `.pem`**：2026-10 起已停用（原因见第八章），仓库里不再有这两个文件。`.gitignore` 里的 `key.pem`（上游原有）和 `*.crx`（本分支追加）都保留着，万一你自己用浏览器「打包扩展程序」生成了，也不会被误提交。
 - **`dist/` 里的 `via-check` / `official-check` / `via-check-tsc` 三个目录**是校验产物，被 `pack-for-edge.js` 的 `SKIP_DIRS` 挡在包外，本地占 6 MB 属正常。
 - 我们新增的全部文件（`HtmlVia.ts`、`check-*.js`、`pack-*.js`、`src/entries/via-check.js`、`webpack.via-check.js`、**本文件**）**上游都不存在 → 永远不冲突**，唯一要盯的是别被误删。
-
-### 11.11 Via 模式下为什么看不到「密码短语」和「文件格式」
-
-**这是有意藏起来的，不是界面坏了。**
-
-Via 只能读**未加密的 Netscape 格式 HTML**。如果给 Via 账号加密，`WebDav.ts` 会把整个文件换成 `{ciphertext, salt}` 密文；如果选 XBEL，Via 根本读不了。所以这两项和 Via 是互斥的，勾上 Via 就自动藏掉：
-
-| 界面位置 | 行为 |
-| --- | --- |
-| **新建账号向导**（WebDAV） | 勾「Via 浏览器兼容」→ 路径预填 `Via/bookmarks.html`、格式锁定 HTML、格式选择框消失 |
-| **账号设置页（Via 账号）** | 密码短语、文件格式两块**隐藏**；Via 卡片可见但开关锁定；附说明 |
-| **账号设置页（普通 WebDAV）** | 密码短语、文件格式**照常显示**，且**看不到 Via 卡片**（与官方原版一致） |
-| **其它适配器**（Git / Google Drive / Dropbox…） | 完全是官方原版设置页，无任何 Via 元素 |
-
-**开启 Via 的唯一入口是新建账号向导**。这不是偷懒，而是刻意的：开启需要三件事同时改（路径、格式、加密），一旦允许中途切换，就得为"格式与实际内容对不上"写一堆补救逻辑，同步失败时用户看到的还是一堆英文报错。整块隐藏 = 没有中间态。
-
-**想换回官方格式**：删除这个账号，新建一个不勾 Via 的。仅此一条路。
-
-> **为什么不做成「置灰」？** 置灰要改 `OptionPassphrase.vue` / `OptionFileType.vue` 两个上游组件本体（各加 `disabled` prop），等于为我们的功能去动无关文件、增加两个长期冲突点。隐藏只需在调用处加 `v-if`，冲突面留在 Via 区域自己那一片。
-
-> **为什么 Via 卡片也整块隐藏（而不是保留一个可点的开关）？** 因为它**不能是可切换的**。一旦普通账号能在设置页勾上，就会出现"勾上了但路径和格式没跟着改"的中间态——`via_compatible=true` 而 `bookmark_file_type` 还是 xbel，产出的是 Via 读不了的 XBEL，而且不报错。开启入口唯一化是唯一能避免这个状态的写法。
-
-**涉及的代码锚点**（同步上游后照着查这几处）：
-
-```bash
-grep -n "VIA-COMPAT" src/ui/views/NewAccount.vue      # 应有 2 处（勾选框 + 预填方法）
-grep -n "VIA-HIDE"   src/ui/components/OptionsWebdav.vue  # 应有 2 处（密码 + 格式）
-grep -n "VIA-NOTE"   src/ui/components/OptionsWebdav.vue  # 已启用时的说明
-grep -n "via_compatible" src/lib/adapters/WebDav.ts  # 兜底必须还在
-```
-
-**为什么向导页的 `onCreate` 里有那一行 `...(this.via_compatible && {...})`**：`onCreate` 是白名单式传参，每个字段都要显式放行。不写这一句，勾选只停在界面上、**存不进账号**，设置页就永远读不到 `via_compatible`。这是本方案最容易踩空的一处，改动时务必带上。
-
-新增文案（`node add-via-locale.js` 可重复执行，幂等，只新增不覆盖）：
-`DescriptionViaCompatibleNoEncrypt`（向导提示）、`DescriptionViaLocked`（设置页说明）。
-
-> ⚠️ 语言包目录名是 **`zh-Hans`（连字符）**，写成 `zh_Hans` 会被静默跳过。脚本里已注明。
 
 ### 11.5 一页速查卡
 
@@ -509,17 +524,20 @@ node sync-upstream.js
 
 # 六步自检（顺序别乱）
 npx gulp build && node check-official-compat.js && node check-i18n.js \
-  && node check-zip.js && node audit-extension.js && node pack-for-edge.js
+  && node check-zip.js && node audit-extension.js && node pack-for-chrome.js
 
 # Via 回归（必须带环境变量）
 npx webpack --config webpack.via-check.js
 VIA_FILE="…/坚果云bookmarks.html" FLOCCUS_FILE="…/floccus-…export.html" \
-  node dist/via-check/bundle.js
+  node dist/via-check/bundle.js     # 28 项全 PASS
 
-# 冲突定位
-grep -n VIA-HOOK src/lib/serializers/Html.ts      # 必须 6 个
-grep -n tabGroups manifest.json                   # 必须在
-git diff origin/develop -- src/lib/murmurhash3.ts # 必须为空
+# 冲突定位（全部 8 个锚点）
+grep -c VIA-HOOK      src/lib/serializers/Html.ts            # 必须 6
+grep -n VIA-COMPAT    src/ui/views/NewAccount.vue            # 必须 2
+grep -n "VIA-HIDE\|VIA-NOTE" src/ui/components/OptionsWebdav.vue   # 各 1
+grep -n via_compatible src/lib/adapters/WebDav.ts             # 兜底必须还在
+grep -n tabGroups     manifest.json                           # 必须在
+git diff origin/develop -- src/lib/murmurhash3.ts             # 必须为空
 
 # 红线自查：绝不能往上游提 PR
 node sync-upstream.js 2>&1 | head -2
@@ -703,4 +721,40 @@ git config --global credential.helper ""     # 所有仓库生效
 **副作用（要知道）**：凭据助手被完全禁用，以后**任何** git 操作如果没带凭据会直接失败，不会再有交互式弹窗兜底。这对我们没影响——项目所有推送都用「token 内联 + 后台任务」的方式。但你如果要**自己在终端里** `git push`，得手动带 token（`https://<user>:<token>@github.com/...`）或改配 SSH key。
 
 **为什么不汉化那个窗口**：GCM 二进制里没有中文语言包（`zh-CN` 资源数为 0），而且它是第三方程序，不该去改。禁用之后**根本不会弹窗**，比汉化更干净。
-
+
+### 11.11 Via 模式下为什么看不到「密码短语」和「文件格式」
+
+**这是有意藏起来的，不是界面坏了。**
+
+Via 只能读**未加密的 Netscape 格式 HTML**。如果给 Via 账号加密，`WebDav.ts` 会把整个文件换成 `{ciphertext, salt}` 密文；如果选 XBEL，Via 根本读不了。所以这两项和 Via 是互斥的，勾上 Via 就自动藏掉：
+
+| 界面位置 | 行为 |
+| --- | --- |
+| **新建账号向导**（WebDAV） | 勾「Via 浏览器兼容」→ 路径预填 `Via/bookmarks.html`、格式锁定 HTML、格式选择框消失 |
+| **账号设置页（Via 账号）** | 密码短语、文件格式两块**隐藏**；Via 卡片可见但开关锁定；附说明 |
+| **账号设置页（普通 WebDAV）** | 密码短语、文件格式**照常显示**，且**看不到 Via 卡片**（与官方原版一致） |
+| **其它适配器**（Git / Google Drive / Dropbox…） | 完全是官方原版设置页，无任何 Via 元素 |
+
+**开启 Via 的唯一入口是新建账号向导**。这不是偷懒，而是刻意的：开启需要三件事同时改（路径、格式、加密），一旦允许中途切换，就得为"格式与实际内容对不上"写一堆补救逻辑，同步失败时用户看到的还是一堆英文报错。整块隐藏 = 没有中间态。
+
+**想换回官方格式**：删除这个账号，新建一个不勾 Via 的。仅此一条路。
+
+> **为什么不做成「置灰」？** 置灰要改 `OptionPassphrase.vue` / `OptionFileType.vue` 两个上游组件本体（各加 `disabled` prop），等于为我们的功能去动无关文件、增加两个长期冲突点。隐藏只需在调用处加 `v-if`，冲突面留在 Via 区域自己那一片。
+
+> **为什么 Via 卡片也整块隐藏（而不是保留一个可点的开关）？** 因为它**不能是可切换的**。一旦普通账号能在设置页勾上，就会出现"勾上了但路径和格式没跟着改"的中间态——`via_compatible=true` 而 `bookmark_file_type` 还是 xbel，产出的是 Via 读不了的 XBEL，而且不报错。开启入口唯一化是唯一能避免这个状态的写法。
+
+**涉及的代码锚点**（同步上游后照着查这几处）：
+
+```bash
+grep -n "VIA-COMPAT" src/ui/views/NewAccount.vue      # 应有 2 处（勾选框 + 预填方法）
+grep -n "VIA-HIDE"   src/ui/components/OptionsWebdav.vue  # 应有 2 处（密码 + 格式）
+grep -n "VIA-NOTE"   src/ui/components/OptionsWebdav.vue  # 已启用时的说明
+grep -n "via_compatible" src/lib/adapters/WebDav.ts  # 兜底必须还在
+```
+
+**为什么向导页的 `onCreate` 里有那一行 `...(this.via_compatible && {...})`**：`onCreate` 是白名单式传参，每个字段都要显式放行。不写这一句，勾选只停在界面上、**存不进账号**，设置页就永远读不到 `via_compatible`。这是本方案最容易踩空的一处，改动时务必带上。
+
+新增文案（`node add-via-locale.js` 可重复执行，幂等，只新增不覆盖）：
+`DescriptionViaCompatibleNoEncrypt`（向导提示）、`DescriptionViaLocked`（设置页说明）。
+
+> ⚠️ 语言包目录名是 **`zh-Hans`（连字符）**，写成 `zh_Hans` 会被静默跳过。脚本里已注明。

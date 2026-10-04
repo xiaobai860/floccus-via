@@ -8,3 +8,4 @@ key.pem
 
 # Sentry Config File
 .env.sentry-build-plugin
+*.crx
