@@ -1043,5 +1043,7 @@
   },
   "LabelFeedbacksent": {
     "message": "感谢您的反馈！"
-  }
+  },
+  "DescriptionViaCompatibleNoEncrypt": "Via 只能读取 Netscape 格式的 HTML。勾选后将隐藏上方的「密码短语」与「文件格式」，并把路径预填为 Via/bookmarks.html、格式锁定为 HTML。启用后此处不可关闭；若要换回官方格式，请删除本账号后新建一个不勾选的账号。",
+  "DescriptionViaLocked": "Via 兼容已启用，因此「密码短语」与「文件格式」已隐藏：Via 只能读取未加密的 HTML，格式固定为 HTML。若要换回官方格式，请删除本账号后新建一个不勾选 Via 兼容的账号。"
 }

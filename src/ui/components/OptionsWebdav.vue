@@ -57,10 +57,23 @@
           :hint="t('DescriptionBookmarksfile')"
           :persistent-hint="true"
           @input="$emit('update:bookmark_file', $event)" />
+        <!--
+          VIA-HIDE-1/2：Via 兼容账号把「密码短语」和「文件格式」整块藏掉。
+
+          为什么必须藏：这两项和 Via 是互斥的，而且藏起来比置灰更省——
+          置灰要改 OptionPassphrase.vue / OptionFileType.vue 两个上游组件本体
+          （各加一个 disabled prop），等于为我们的功能去动无辜文件；隐藏只需
+          在调用处加 v-if，冲突面留在这张卡里我们自己那一片。
+
+          藏着的同时数据层也要保证（见 WebDav.ts 的 VIA-GUARD），否则导入旧配置
+          之类绕过界面的路径仍可能触发加密。隐藏是给人看的，兜底是给数据看的。
+        -->
         <OptionPassphrase
+          v-if="!via_compatible"
           :value="passphrase"
           @input="$emit('update:passphrase', $event)" />
         <OptionFileType
+          v-if="!via_compatible"
           :value="bookmark_file_type"
           @input="$emit('update:bookmark_file_type', $event)" />
       </v-card-text>
@@ -71,6 +84,11 @@
       格式：整棵树被包在一个根文件夹里（例如「一加5」），只有 ADD_DATE，没有 floccus
       的 ID/TAGS。打开这个开关后，读写都按 Via 原生 Netscape 格式走，详见
       src/lib/serializers/Html.ts 顶部注释。
+
+      VIA-HIDE-2/2：勾上之后开关就锁定不可取消。这里不是"忘了做双向切换"，
+      而是刻意的 —— Via 与加密、XBEL 格式互斥（见上面藏掉的两块），中途放开
+      会让文件格式和实际内容对不上，同步直接报错。解锁办法写在下面的说明里：
+      删掉这个账号重建一个不勾 Via 的。想换回官方格式也只有这一条路。
     -->
     <v-card class="mb-4">
       <v-card-title
@@ -88,10 +106,21 @@
           :input-value="via_compatible"
           :true-value="true"
           :false-value="false"
+          :disabled="via_compatible"
           :label="t('LabelViaCompatible')"
           :hint="t('DescriptionViaCompatible')"
           :persistent-hint="true"
           @change="$emit('update:via_compatible', $event)" />
+        <!--
+          VIA-NOTE：已启用时补一条说明，讲清"密码和格式为什么不见了"以及怎么换回官方模式。
+          不加这句的话用户看到选项凭空消失会当成界面坏了。
+        -->
+        <div
+          v-if="via_compatible"
+          class="caption mt-2"
+          role="note">
+          {{ t('DescriptionViaLocked') }}
+        </div>
         <v-text-field
           v-if="via_compatible"
           class="mt-2"

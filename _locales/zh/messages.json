@@ -188,12 +188,12 @@
   "DescriptionBookmarksfile": {
     "message": "书签文件在服务器上的存放路径，相对于 WebDAV URL（路径中的所有文件夹必须已经存在）。 例如：personal_stuff/bookmarks.xbel"
   },
- "DescriptionBookmarksfilegoogle": {
-   "message": "将存放在 Google Drive 中的书签文件的文件名。不要输入完整的文件路径，只输入文件名。确保该名称在驱动器中是唯一的。例如：mybookmarks.xbel"
- },
- "DescriptionBookmarksfiledropbox": {
-   "message": "待在 Dropbox 中的书签文件的名字。不要输入完整的文件路径，只输入文件名。确保该名字在你的 Dropbox 内唯一，如 mybookmarks.xbel"
- },
+  "DescriptionBookmarksfilegoogle": {
+    "message": "将存放在 Google Drive 中的书签文件的文件名。不要输入完整的文件路径，只输入文件名。确保该名称在驱动器中是唯一的。例如：mybookmarks.xbel"
+  },
+  "DescriptionBookmarksfiledropbox": {
+    "message": "待在 Dropbox 中的书签文件的名字。不要输入完整的文件路径，只输入文件名。确保该名字在你的 Dropbox 内唯一，如 mybookmarks.xbel"
+  },
   "DescriptionBookmarksfilegit": {
     "message": "相对于你的 Git 存储库根目录的书签文件路径 (路径中的所有文件夹必须都已存在)。如，personal_stuff/bookmarks.xbel"
   },
@@ -714,10 +714,10 @@
   "LabelMobilesettings": {
     "message": "Mobile 设置"
   },
-  "LabelContinuefloccus":{
+  "LabelContinuefloccus": {
     "message": "继续到 floccus"
   },
-  "LabelAbout":{
+  "LabelAbout": {
     "message": "关于"
   },
   "LabelCurrentversion": {
@@ -807,7 +807,7 @@
   "LabelExportBookmarks": {
     "message": "导出书签"
   },
-  "DescriptionExportBookmarks" : {
+  "DescriptionExportBookmarks": {
     "message": "你可以将此配置文件内所有书签导出为兼容所有主流浏览器的 HTML 文件"
   },
   "LabelShareitem": {
@@ -888,31 +888,31 @@
   "DescriptionReportproblem": {
     "message": "如果您想就具体问题直接与开发人员联系，可以在这里进行："
   },
-  "LabelAdapterKarakeep":  {
+  "LabelAdapterKarakeep": {
     "message": "卡拉凯普"
   },
-  "DescriptionAdapterKarakeep":  {
+  "DescriptionAdapterKarakeep": {
     "message": "用开源自托管的 Karakeep 应用同步书签。它只能同步 http 书签。此选项无法使用端到端加密，不支持在同步中保留书签顺序。"
   },
-  "LabelApiKey":  {
+  "LabelApiKey": {
     "message": "API 密钥"
   },
-  "LabelKarakeepurl":  {
+  "LabelKarakeepurl": {
     "message": "Karakeep 服务器的 URL"
   },
   "LabelKarakeepconnectionerror": {
     "message": "连接 Karakeep 服务器失败"
   },
-  "LabelAdapterlinkwarden":  {
+  "LabelAdapterlinkwarden": {
     "message": "林克沃登"
   },
-  "DescriptionAdapterlinkwarden":  {
+  "DescriptionAdapterlinkwarden": {
     "message": "使用开源的 Linkwarden 应用程序同步您的书签，该程序可托管在您自己的服务器上或云端 cloud.linkwarden.app。它只能同步 http、ftp 和 javascript 书签。此选项不能使用端到端加密，也不支持在同步时保持书签顺序。"
   },
-  "LabelLinkwardenurl":  {
+  "LabelLinkwardenurl": {
     "message": "Linkwarden 服务器的 URL"
   },
-  "LabelAccesstoken":  {
+  "LabelAccesstoken": {
     "message": "访问令牌"
   },
   "LabelLinkwardenconnectionerror": {
@@ -933,7 +933,7 @@
   "LabelOpeninnewtab": {
     "message": "在新标签页中打开此视图"
   },
-  "LabelFaq":{
+  "LabelFaq": {
     "message": "查看常见问题"
   },
   "StatusSyncingfailed": {
@@ -1004,5 +1004,7 @@
   },
   "DescriptionSynconstartup": {
     "message": "如启用，将在启动时同步该配置文件。如果要在启动时同步书签，不想等待下次定时同步，该功能会有用。"
-  }
+  },
+  "DescriptionViaCompatibleNoEncrypt": "Via 只能讀取 Netscape 格式的 HTML。勾選後將隱藏上方的「密碼短語」與「文件格式」，並把路徑預填為 Via/bookmarks.html、格式鎖定為 HTML。啟用後此處不可關閉；若要換回官方格式，請刪除本帳號後新建一個不勾選的帳號。",
+  "DescriptionViaLocked": "Via 相容已啟用，因此「密碼短語」與「文件格式」已隱藏：Via 只能讀取未加密的 HTML，格式固定為 HTML。若要換回官方格式，請刪除本帳號後新建一個不勾選 Via 相容的帳號。"
 }

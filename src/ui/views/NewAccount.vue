@@ -519,7 +519,25 @@
                 :label="t('LabelBookmarksfile')"
                 :hint="t('DescriptionBookmarksfile')"
                 :persistent-hint="true" />
-              <OptionFileType v-model="bookmark_file_type" />
+              <!--
+                VIA-COMPAT-1/2（向导页）：勾上即定型为 Via 兼容账号。
+                勾选瞬间把路径预填成 Via 自己的布局、格式锁成 HTML，并把格式选择整块藏掉 ——
+                Via 只能读 Netscape 格式，这三步必须同时发生，缺一个同步就会失败。
+                存进账号数据的是 via_compatible（WebDav.getDefaultValues 里有 false 兜底），
+                设置页据此决定要不要露出密码/格式两块，见 OptionsWebdav.vue。
+              -->
+              <v-checkbox
+                class="mt-2"
+                :input-value="via_compatible"
+                :true-value="true"
+                :false-value="false"
+                :label="t('LabelViaCompatible')"
+                :hint="t('DescriptionViaCompatibleNoEncrypt')"
+                :persistent-hint="true"
+                @change="onViaCompatibleChange" />
+              <OptionFileType
+                v-if="!via_compatible"
+                v-model="bookmark_file_type" />
             </template>
 
             <template v-if="adapter === 'git'">
@@ -743,6 +761,9 @@ export default {
       refreshToken: '',
       bookmark_file: 'bookmarks.xbel',
       bookmark_file_type: 'xbel',
+      // VIA-COMPAT-2/2：向导页勾选状态。默认 false = 官方行为；勾上后路径/格式由
+      // onViaCompatibleChange 预填成 Via 布局，并写进账号数据供设置页读取。
+      via_compatible: false,
       serverFolder: 'Floccus',
       serverRoot: '',
       localRoot: null,
@@ -841,6 +862,29 @@ export default {
     this.$router.push({ name: 'HOME' })
   },
   methods: {
+    /**
+     * VIA-COMPAT-1/2：向导页勾选「Via 浏览器兼容」时的一次性预填。
+     *
+     * 三件事必须同时做，缺一个同步就会失败：
+     *   1. 路径 → Via 导出的布局 Via/bookmarks.html（用 Via 的目录结构，同一份文件两边都在写）
+     *   2. 格式 → html（Via 只认 Netscape 格式，XBEL 它读不了）
+     *   3. 格式选择框整块藏掉（选项已由 Via 决定，留着只会让人改成 xbel）
+     *
+     * 取消勾选时还原成官方默认（xbel + bookmarks.xbel），这样这个向导也能正常建
+     * 官方 WebDAV 账号 —— 它和 Via 账号共用同一张表单。
+     * 密码短语这里不用管：本分支的表单本来就没有密码框（上游如此），
+     * 官方的密码短语块只存在于账号设置页，由 OptionsWebdav.vue 负责隐藏。
+     */
+    onViaCompatibleChange(checked) {
+      this.via_compatible = checked
+      if (checked) {
+        this.bookmark_file = 'Via/bookmarks.html'
+        this.bookmark_file_type = 'html'
+      } else {
+        this.bookmark_file = 'bookmarks.xbel'
+        this.bookmark_file_type = 'xbel'
+      }
+    },
     async onCreate() {
       const accountId = await this.$store.dispatch('CREATE_ACCOUNT', {
         type: this.adapter,
@@ -882,6 +926,12 @@ export default {
         ...(this.adapter === 'webdav' && {
           includeCredentials: this.includeCredentials,
         }),
+        // VIA-COMPAT-1/2 的落地点：onCreate 是白名单式传参（上面每个字段都靠
+        // `...(条件 && { 字段 })` 显式放行），不放这一句的话勾选只停在界面上、
+        // 根本存不进账号，设置页也就读不到 via_compatible。
+        // 只在 webdav 且确实勾了才传，避免给其它适配器塞无关字段。
+        ...(this.adapter === 'webdav' &&
+          this.via_compatible && { via_compatible: true }),
         ...(this.isBrowser && { localRoot: this.localRoot }),
         syncInterval: this.syncInterval,
         strategy: this.strategy,

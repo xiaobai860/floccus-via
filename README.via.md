@@ -461,6 +461,37 @@ node dist/via-check/bundle.js     # 26 项全 PASS
 - **`dist/` 里的 `via-check` / `official-check` / `via-check-tsc` 三个目录**是校验产物，被 `pack-for-edge.js` 的 `SKIP_DIRS` 挡在包外，本地占 6 MB 属正常。
 - 我们新增的全部文件（`HtmlVia.ts`、`check-*.js`、`pack-*.js`、`src/entries/via-check.js`、`webpack.via-check.js`、**本文件**）**上游都不存在 → 永远不冲突**，唯一要盯的是别被误删。
 
+### 11.11 Via 模式下为什么看不到「密码短语」和「文件格式」
+
+**这是有意藏起来的，不是界面坏了。**
+
+Via 只能读**未加密的 Netscape 格式 HTML**。如果给 Via 账号加密，`WebDav.ts` 会把整个文件换成 `{ciphertext, salt}` 密文；如果选 XBEL，Via 根本读不了。所以这两项和 Via 是互斥的，勾上 Via 就自动藏掉：
+
+| 界面位置 | 行为 |
+| --- | --- |
+| **新建账号向导**（WebDAV） | 勾「Via 浏览器兼容」→ 路径预填 `Via/bookmarks.html`、格式锁定 HTML、格式选择框消失 |
+| **账号设置页** | 密码短语、文件格式两块**隐藏**；Via 开关**已勾选即锁定不可取消**；卡片里补一句说明 |
+
+**想换回官方格式**：删除这个账号，新建一个不勾 Via 的。仅此一条路。
+
+> 为什么不做成「置灰」？置灰要改 `OptionPassphrase.vue` / `OptionFileType.vue` 两个上游组件本体（各加 `disabled` prop），等于为我们的功能去动无关文件、增加两个长期冲突点。隐藏只需在调用处加 `v-if`，冲突面留在 Via 区域自己那一片。
+
+**涉及的代码锚点**（同步上游后照着查这几处）：
+
+```bash
+grep -n "VIA-COMPAT" src/ui/views/NewAccount.vue      # 应有 2 处（勾选框 + 预填方法）
+grep -n "VIA-HIDE"   src/ui/components/OptionsWebdav.vue  # 应有 2 处（密码 + 格式）
+grep -n "VIA-NOTE"   src/ui/components/OptionsWebdav.vue  # 已启用时的说明
+grep -n "via_compatible" src/lib/adapters/WebDav.ts  # 兜底必须还在
+```
+
+**为什么向导页的 `onCreate` 里有那一行 `...(this.via_compatible && {...})`**：`onCreate` 是白名单式传参，每个字段都要显式放行。不写这一句，勾选只停在界面上、**存不进账号**，设置页就永远读不到 `via_compatible`。这是本方案最容易踩空的一处，改动时务必带上。
+
+新增文案（`node add-via-locale.js` 可重复执行，幂等，只新增不覆盖）：
+`DescriptionViaCompatibleNoEncrypt`（向导提示）、`DescriptionViaLocked`（设置页说明）。
+
+> ⚠️ 语言包目录名是 **`zh-Hans`（连字符）**，写成 `zh_Hans` 会被静默跳过。脚本里已注明。
+
 ### 11.5 一页速查卡
 
 ```bash
