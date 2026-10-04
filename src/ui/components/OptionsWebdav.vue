@@ -104,30 +104,34 @@
         <v-icon aria-hidden="true">
           mdi-cellphone-link
         </v-icon>
-        {{ VIA_TEXT.title }}
+        Via 浏览器兼容
       </v-card-title>
       <v-card-text>
         <!--
           这里只会出现在已经是 Via 账号的设置页上（外层 v-if 挡住了普通账号），
           所以开关必定是勾选状态，直接 disabled 锁住即可。
+          label/hint 直接写中文而不走 t()：_locales 五个语言包保持上游原样、零改动，
+          Via 文案就地硬编码（本分支只服务中文用户，这是冲突面最小的做法）。
+          改文案时两处要同步：这里的 checkbox label/hint + 本卡片标题，以及
+          src/ui/views/NewAccount.vue 里向导第3 步那个勾选框。
         -->
         <v-checkbox
           :input-value="true"
           :true-value="true"
           :false-value="false"
           disabled
-          :label="VIA_TEXT.checkbox"
-          :hint="VIA_TEXT.hint"
-          :persistent-hint="true" />
+          label="Via 浏览器兼容"
+          hint="Via 只能读取未加密的 Netscape 格式书签文件，因此本配置不能设置密码短语，也不能使用 XBEL 格式。"
+          persistent-hint />
         <!--
           VIA-NOTE：讲清"密码和格式为什么不见了"以及怎么换回官方模式。
           不加这句的话用户看到选项凭空消失会当成界面坏了。
         -->
-        <div
-          class="caption mt-2"
+        <p
+          class="caption mt-2 mb-0"
           role="note">
-          {{ VIA_TEXT.lockedNote }}
-        </div>
+          Via 兼容已启用：密码短语与文件格式两项已锁定不可修改（这是 Via 能读懂该文件的必要条件）。想改回官方格式，请删除本账号后重新建立一个不勾选 Via 的账号。
+        </p>
         <!--
           这里原来有一个「Via 根文件夹名」输入框（via_root_folder），已删除。
           实测用户的真实文件（fixtures/via-real、via-newroot、floccus-real）顶层都是
@@ -270,7 +274,6 @@ import OptionPassphrase from './OptionPassphrase.vue'
 import OptionAutoSync from './OptionAutoSync.vue'
 import OptionSyncIntervalEnabled from './OptionSyncIntervalEnabled.vue'
 import OptionSyncOnStartup from './OptionSyncOnStartup.vue'
-import { VIA_TEXT } from '../via-text'
 
 export default {
   name: 'OptionsWebdav',

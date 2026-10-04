@@ -285,9 +285,9 @@
                 :input-value="via_compatible"
                 :true-value="true"
                 :false-value="false"
-                :label="VIA_TEXT.wizardCheckbox"
-                :hint="VIA_TEXT.wizardHint"
-                :persistent-hint="true"
+                label="Via 浏览器兼容"
+                hint="勾上后书签文件路径会自动填成 Via 的布局、文件格式锁定为 HTML，并且本页面下方的「密码短语」会隐藏（Via 读不了加密后的文件）。此选项只能在建立账号时选定，建立后不可取消。"
+                persistent-hint
                 @change="onViaCompatibleChange" />
               <v-select
                 :items="Object.keys(predefinedWebdavUrls)"
@@ -746,7 +746,6 @@ import OptionSyncIntervalEnabled from '../components/OptionSyncIntervalEnabled.v
 import OptionAutoSync from '../components/OptionAutoSync.vue'
 import OptionClientCert from '../components/OptionClientCert.vue'
 import OptionSyncOnStartup from '../components/OptionSyncOnStartup.vue'
-import { VIA_TEXT } from '../via-text'
 
 export default {
   name: 'NewAccount',

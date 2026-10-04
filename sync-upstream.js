@@ -91,7 +91,6 @@ const VIA_PROTECTED_FILES = [
   'README.upstream.md', // 上游 README 的归档副本（fork 专属，上游没有这个文件）
   'README.via.md', // ★ 本文档：fork 的维护说明，绝不能被覆盖或删掉
   'src/lib/serializers/HtmlVia.ts', // Via 插槽本体
-  'src/ui/via-text.ts', // Via 中文文案硬编码处（丢了界面就露出 ViaCompatXxx 之类的 key 名）
   'audit-extension.js',
   'check-i18n.js',
   'check-official-compat.js',
