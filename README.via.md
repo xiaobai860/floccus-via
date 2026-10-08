@@ -876,3 +876,79 @@ Via 文案现在**不走语言包**，直接以中文写死在两个组件的模
 - `pack-for-edge.js` 里加了硬检查：`OUT` 不是约定路径就直接 `exit 1`，防止以后（尤其是换机器、clone 到别处时）误改
 
 **顺带**：如果你换机器、目录路径整体变了（比如从 `D:\xiaom\...` 挪到别处），那本来就得在扩展页重新「加载已解压的扩展程序」一次——这时 ID 会变、storage 是新的，属于预期行为，配置重新建一遍即可。真正要防的是**同一台机器上路径被无意改动**。
+
+### 11.13 真实案例：同步上游后 `gulp build` 直接挂（原生依赖改名）
+
+**时间线**：2026-10-08 同步上游 `develop`（`944fc3e` → `91a1d2ca`，4 个提交，看着全是 iOS / CI，跟 PC 扩展八竿子打不着）。
+
+| 提交 | 内容 |
+| --- | --- |
+| `178af076` | chore: update mindlib-capacitor/send-intent |
+| `480a3d4b` | fix(ci): Fix CodeQL action |
+| `16dcc3f1` | [native] fix(send-intent): Fix send intent on iOS |
+| `91a1d2ca` | fix: update ios files |
+
+**唯一会伤到构建的一处**（`package.json`）：
+
+```
+- "send-intent": "7.x"
++ "@mindlib-capacitor/send-intent": "8.x"
+```
+
+**为什么改个「iOS 用的包」能让 PC 扩展构建失败？** 因为 webpack 会顺着静态 import 一路解析，PC 扩展的入口链路里就夹着它们：
+
+```
+entries/options.js → ui (Update.vue 静态 import) → ui/NativeRouter.js
+   → 静态 import views/native/Home.vue
+   → import { SendIntent } from '@mindlib-capacitor/send-intent'   ← 缺包即 Module not found
+```
+
+`src/ui/NativeRouter.js` 对 native 视图是**静态 import**（不是懒加载），所以这两个原生容器页面被 PC 构建一并打包。node_modules 里只有旧包 `send-intent` 时，`gulp build` 直接抛 `Module not found`，**整包出不来**。
+
+**处理（三步，缺一不可）**：
+
+```bash
+git merge --ff-only fork/my-viasync      # 或直接 git merge origin/develop
+npm install                              # ① 按上游的 package-lock.json 装新依赖
+npx gulp build                           # ② 重新构建
+node check-official-compat.js            # ③ 官方 sha 必须仍是 33ea98f5…/ 39147 字节
+```
+
+> `npm install` 会自动把旧包 `send-intent` 摘掉、装上 `@mindlib-capacitor/send-intent`（实测：added 1, removed 3，13 秒）。**别手动 cp 旧目录凑数**，version 对不上会以别的方式炸。
+
+**同步结果（`96a9c8d3`）**：
+
+- Via 核心文件**一个都没被动**：`Html.ts` 的 6 个 VIA-HOOK 原样、`HtmlVia.ts` 在、`OptionsWebdav.vue` Via 卡片在、`NewAccount.vue` 勾选框在
+- `src/lib/murmurhash3.ts` / `src/lib/Caching.ts` / `_locales` 五包与上游**零 diff**（最高危点 + 语言包都没碰）
+- `check-official-compat` ALL PASS（sha `33ea98f5` / 39147 字节）—— 不开 Via 开关时输出与官方逐字节一致
+- Via 回归 **28 项 ALL PASS**（真实文件 `坚果云bookmarks.html` + floccus 导出）
+- `audit-extension` 33 PASS / 0 FAIL；`check-zip` 182 条目 CRC 通过
+
+**结论与经验**：
+
+> **上游只要动了 `package.json`，同步后就必须 `npm install`，哪怕那个依赖看起来只服务于 iOS / Android 原生容器。**
+> 判断依据不是「这个包 PC 用不用」，而是「webpack 的静态 import 链路会不会碰到它」——NativeRouter 是个共用路由，native 视图躲不掉。
+
+这条已经写成 `sync-upstream.js` 的 P1 常驻检查项（`git diff 944fc3ea origin/develop -- package.json` + `node_modules/@mindlib-capacitor/send-intent 存在`），下次再遇到会直接报出来。
+
+### 11.14 跑 Via 回归必须用真实文件，别用 fixtures/ 下的样本
+
+`src/entries/via-check.js` 里那几条「顶层 13 个并列条目」「排头是『一加5』」是对**真实 Via 导出**的断言。仓库里的 `fixtures/via-real.html` 是 Chrome 形态（顶层是 `Bookmarks Bar`），拿它跑会挂 6 条：
+
+```
+FAIL  顶层 13 个并列条目（实际 3）
+FAIL  排头是「一加5」（实际 Bookmarks Bar）
+FAIL  顶层含 手机应用 / tvbox / 免root玩机
+FAIL  同级重名文件夹拿到不同稳定 ID
+FAIL  根级 ADD_DATE 原样回写（1754285806）…
+FAIL  再解析后重名文件夹 ID 仍不冲突
+```
+
+**这是 fixtures 样本与目标断言不匹配，不是代码回归**（换成真实文件后 28 项全 PASS）。跑回归请这样：
+
+```bash
+npx webpack --config webpack.via-check.js
+VIA_FILE="E:/Users/xiaom/Downloads/坚果云bookmarks.html" \
+FLOCCUS_FILE="E:/Users/xiaom/Downloads/floccus-2026-10-03.export.html" \
+  node dist/via-check/bundle.js
+```

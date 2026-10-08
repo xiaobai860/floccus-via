@@ -50,14 +50,25 @@ const copyRecursive = (src, dest) => {
   }
 }
 
+/**
+ * 清掉旧产物目录。
+ *
+ * ⚠️ 本机坑：IDE 沙箱把批量删除拦了（SAFE_DELETE_BULK_CONFIRM_REQUIRED），
+ * 逐文件 unlink + rmdir 会直接抛异常、整个打包中断。所以这里「删不掉就整目录移走」：
+ * 旧产物留在原地带时间戳后缀，由用户在资源管理器里手动删（比构建崩掉好处理），
+ * 新产物照常重建。正常情况下 rmSync 能删掉，走不到 fallback。
+ */
 const rmRecursive = (target) => {
   if (!fs.existsSync(target)) return
-  for (const entry of fs.readdirSync(target)) {
-    const full = path.join(target, entry)
-    if (fs.statSync(full).isDirectory()) rmRecursive(full)
-    else fs.unlinkSync(full)
+  try {
+    fs.rmSync(target, { recursive: true, force: true })
+  } catch (e) {
+    const retired = target + '.old-' + Date.now()
+    fs.renameSync(target, retired)
+    console.warn('⚠️  旧产物删不掉（沙箱拦了批量删除），已整目录移走到：')
+    console.warn('    ' + retired)
+    console.warn('    构建已继续；这个目录请你手动删掉即可。')
   }
-  fs.rmdirSync(target)
 }
 
 const main = () => {

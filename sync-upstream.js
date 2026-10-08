@@ -136,6 +136,8 @@ const POST_SYNC_CHECKLIST = [
   ['P1 必查', 'src/ui/components/OptionsWebdav.vue 的 Via 卡片还在不在', '上游改设置页会被冲掉'],
   ['P1 必查', 'src/lib/native/I18n.ts 的 getMessageChain 与 zh-Hans 借道', '缺了 Via 新文案会露英文'],
   ['P1 必查', 'src/lib/adapters/Caching.ts 还能不能挂 viaRootName', '重构缓存会让 Via 根文件夹识别失效'],
+  ['P1 必查', 'git diff 944fc3ea origin/develop -- package.json', '上游改了依赖名（send-intent → @mindlib-capacitor/send-intent）就要 npm install，否则构建期直接 Module not found'],
+  ['P1 必查', 'node_modules/@mindlib-capacitor/send-intent 存在', '缺包 = gulp build 解析不了 native/Home.vue（NativeRouter 是静态 import，PC 扩展也会解析）'],
   ['P2 顺手', 'git status 里 android/ios 那 8 个 M', '纯行尾噪声，别 add，别用 git add -A'],
   ['P2 顺手', 'floccus-via.zip / .crx / key.pem', '本地产物与私钥，一律不提交'],
   ['P2 顺手', 'git diff README.upstream.md', '上游 README 的归档，变了说明上游更新了说明文档'],
