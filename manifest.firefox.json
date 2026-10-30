@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "floccus bookmarks sync",
   "short_name": "floccus",
-  "version": "5.11.1",
+  "version": "5.12.0",
   "description": "__MSG_DescriptionExtension__",
   "icons": {
     "48": "icons/logo.png",
@@ -10,10 +10,14 @@
     "128": "icons/logo_128.png"
   },
 
-  "applications": {
+  "browser_specific_settings": {
     "gecko": {
       "id": "floccus@handmadeideas.org",
       "strict_min_version": "58.0"
+    },
+    "gecko_android": {
+      "id": "floccus@handmadeideas.org",
+      "strict_min_version": "113.0"
     }
   },
 

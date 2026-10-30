@@ -19,6 +19,9 @@ import {
   textEncode,
 } from './HtmlVia'
 
+// 上游 5.12 新增：解析官方 HTML 时若节点缺 ID 则抛错（allowMissingIds 模式可放行）
+import { MissingItemIdsError } from '../../errors/Error'
+
 // 保持对外类型导出不变（WebDav 等调用方按名字引用）
 export type { IHtmlSerializerOptions }
 
@@ -174,6 +177,7 @@ export const getRootFolder = (body: cheerio.Cheerio<any>) => {
 export const parseByString = (content: string, options: IHtmlSerializerOptions = {}) => {
   const opts = { ...DEFAULT_OPTIONS, ...options }
   const via = Boolean(opts.viaCompatible)
+  const allowMissingIds = Boolean(opts.allowMissingIds)
   const $ = cheerio.load(content)
 
   const body = $('body')
@@ -212,8 +216,22 @@ export const parseByString = (content: string, options: IHtmlSerializerOptions =
 
     const title = typeof eq0.text() !== 'undefined' ? eq0.text() : ''
     const addDate = parseInt(eq0.attr('add_date'), 10)
-    const id =
-      idOverride !== undefined ? idOverride : (eq0.attr('id') || legacyIdCounter++)
+    const idAttr = eq0.attr('id')
+    let id: string | number
+    if (idOverride !== undefined) {
+      // Via 派生 ID（VIA-HOOK 5/6）：优先用上层传下来的稳定哈希
+      id = idOverride
+    } else if (idAttr) {
+      id = idAttr
+    } else if (allowMissingIds || via) {
+      // allowMissingIds：上游 5.12 放行缺 ID 的官方文件；
+      // via：原生 Netscape 本就没有 ID，走自增兜底（与存量账号行为一致）
+      id = legacyIdCounter++
+    } else {
+      // Ids are what the mappings refer to; numbering items by their position
+      // would point them at other items as soon as the file is edited elsewhere
+      throw new MissingItemIdsError()
+    }
 
     // Via / 原生 Netscape 格式用 ADD_DATE 记录添加时间；记下来，回写时原样带出，
     // 这样同一棵树每次写出的字节都完全一致，不会在下一轮同步里被误判成「服务端变了」。

@@ -130,6 +130,7 @@ const POST_SYNC_CHECKLIST = [
   ['P0 必跑', 'node audit-extension.js', '33 PASS / 0 FAIL'],
   ['P0 必跑', 'node pack-for-edge.js', '重新打 ../floccus-via 与 zip'],
   ['P1 必查', "grep -n VIA-HOOK src/lib/serializers/Html.ts", '必须仍是 6 个，顺序别乱'],
+  ['P1 必查', 'git diff 91a1d2ca origin/develop -- src/lib/serializers/Html.ts', '上游若给 deserialize/parseByString/parseNode 加 allowMissingIds + MissingItemIdsError（v5.12.0 就是），会撞 VIA-HOOK 4/5/6 —— 合并时要「两边都保留」，别让上游版本把 Via 逻辑覆盖掉'],
   ['P1 必查', 'git diff origin/develop -- src/lib/murmurhash3.ts', '必须为空！Via 稳定 ID 依赖它，动了会全量重建'],
   ['P1 必查', 'grep -n tabGroups manifest.json', '必须在，我们补的权限别被冲掉'],
   ['P1 必查', 'src/lib/adapters/WebDav.ts 的 via_compatible / via_root_folder 与 getHtmlSerializerOptions() 短路', '缺了等于不开 Via 也走兼容路径'],

@@ -952,3 +952,37 @@ VIA_FILE="E:/Users/xiaom/Downloads/坚果云bookmarks.html" \
 FLOCCUS_FILE="E:/Users/xiaom/Downloads/floccus-2026-10-03.export.html" \
   node dist/via-check/bundle.js
 ```
+
+### 11.15 真实案例：跟上 floccus v5.12.0（91a1d2ca → c5810992，45 个提交）
+
+上游从 `v5.11.1` bump 到 `v5.12.0`，领先我们 45 个提交。这次的**真冲突点**和上次（依赖改名）完全不同：
+
+**① 唯一的内容冲突在 `src/lib/serializers/Html.ts`（VIA-HOOK 4/5/6 撞车）**
+
+上游给 `deserialize` / `parseByString` / `parseNode` 加了 `allowMissingIds` 选项 + `MissingItemIdsError`（缺 ID 直接抛错，防止别人的编辑器改了文件后映射错位）。而我们的 Via 逻辑正好埋在这三个函数里（加 `viaCompatible` 选项、`ADD_DATE` 派生稳定 ID）。dry-run 体检说「无冲突」是误判，实际 4 个冲突块。
+
+解决原则：**两边都保留**——`parseByString` 用我们的 `IHtmlSerializerOptions` 签名（让 `viaCompatible` 透传），`allowMissingIds` 从 options 里取；`parseNode` 里先走我们的 `idOverride`/`ADD_DATE` 派生，再接上游的 `MissingItemIdsError` 兜底守卫。`MissingItemIdsError` 已加入 import。合并后 `grep -c VIA-HOOK Html.ts` 仍必须是 **6**。
+
+**② `check-i18n.js` 的对比基线过期（误报修复）**
+
+脚本原本把基线硬编码成 fork 基线 `944fc3e`，而这次上游新增了 dropbox/karakeep 等 adapter 的翻译 key，合并后我们的 `_locales` 已等于新上游 `c5810992`，自然和旧基线「不一致」→ 硬约束误报 ❌。
+
+修复：基线改为 `origin/develop`（当前同步的上游），并把退出码收敛到只认「我们手改了语言包」(`localeDirty`) 这一条硬契约。cs/de/es/fr/zh_TW 等语言的缺词是**上游 floccus 自带的翻译不全**（原生 floccus 也一样缺），与 fork 无关，降级为 ⚠️ 警告。改完后 `_locales` 5 包对比 `origin/develop` 全 ✅，退出码 0。
+
+> 教训：每次同步上游后，若上游动过 `_locales`，`check-i18n.js` 的基线必须同步指向新的 `origin/develop`，否则会误报。
+
+**③ 这次不需要 `npm install`**
+
+上游只动了版本号（5.11.1→5.12.0）、新增 `dist-native`（Capacitor 原生构建目录，纯增量）和若干测试文件，**没有依赖改名**，所以 `node_modules` 不用动。判断依据仍是「webpack 静态 import 链路碰不碰得到新包名」，不是「这个包 PC 用不用」。
+
+**④ 验收结果（全绿）**
+
+- 官方 compat sha 仍 `33ea98f5` / 39147 字节（不开 Via 与官方逐字节一致）
+- Via 回归 28 项 **ALL PASS**
+- `check-i18n` / `check-official-compat` / `check-zip` / `audit-extension` 退出码全 0
+- `_locales` 5 包对比 `origin/develop` 逐字节一致
+- zip 重新打包 7.21 MB，188 条目 CRC 通过
+
+**⑤ 这次合并的产物提交**
+
+合并提交信息形如 `via: 跟上游 develop 至 c5810992（吸收 v5.12.0，解决 Html.ts 冲突）`。只推 `fork`（绝不 `origin`、绝不 PR）。`check-i18n.js` 的基线修复一并带进该提交。

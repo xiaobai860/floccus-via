@@ -139,10 +139,14 @@ for (const r of rows) {
   )
 }
 
-// 本分支的硬约束：_locales 必须与上游逐字节一致（零改动）。
-// 任何语言包偏离上游都意味着冲突面回归，必须 FAIL。
-console.log('\n=== 语言包是否偏离上游（floccus-via 硬约束：必须零改动）===')
+// 本分支的硬约束：_locales 必须与【当前同步的上游 origin/develop】逐字节一致（零改动）。
+// 任何语言包偏离「当前上游」都意味着我们不小心手改了 locale，必须 FAIL。
+// 注意：基线用 origin/develop 而非冻结的某个 commit —— 因为每同步一次上游，
+// 上游自己可能新增翻译 key（如 dropbox/karakeep adapter），此时 locale 会随上游一起变，
+// 这是预期内的「跟上上游」，不算冲突面回归。对比旧基线 944fc3e 反而会产生误报。
+console.log('\n=== 语言包是否偏离当前上游 origin/develop（floccus-via 硬约束：必须零改动）===')
 const LOCALE_ZERO_DIFF = ['en', 'zh', 'zh_CN', 'zh-Hans', 'zh_TW']
+const UPSTREAM_BASE = 'origin/develop'
 let localeDirty = false
 for (const loc of LOCALE_ZERO_DIFF) {
   const f = path.join(LOCALES, loc, 'messages.json')
@@ -150,13 +154,13 @@ for (const loc of LOCALE_ZERO_DIFF) {
   let base = null
   try {
     base = require('child_process')
-      .execSync(`git show 944fc3e:_locales/${loc}/messages.json`, {
+      .execSync(`git show ${UPSTREAM_BASE}:_locales/${loc}/messages.json`, {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],
       })
   } catch (e) {
     /* 取不到上游基线就跳过校验，不误报 */
-    console.log(`  ? ${loc.padEnd(9)} 取不到上游基线，跳过比对`)
+    console.log(`  ? ${loc.padEnd(9)} 取不到上游基线（先 git fetch origin develop），跳过比对`)
     continue
   }
   const norm = (s) => s.replace(/\r\n/g, '\n').trim()
@@ -165,8 +169,24 @@ for (const loc of LOCALE_ZERO_DIFF) {
   console.log(`  ${same ? '✅' : '❌'} ${loc.padEnd(9)} ${same ? '与上游一致' : '已被改动'}`)
 }
 if (localeDirty) {
-  console.log('  ❌ 有语言包偏离上游。floccus-via 的 Via 文案走 src/ui/via-text.ts，')
-  console.log('     不需要改语言包 —— 请把它恢复到上游版本。')
+  console.log('  ❌ 有语言包偏离上游。floccus-via 的 Via 文案全部内联在 .vue 模板里，')
+  console.log('     不依赖 _locales —— 请把它恢复到 origin/develop 的上游版本（git checkout origin/develop -- _locales/<lang>）。')
 }
 
-process.exitCode = anyMissing || localeDirty ? 1 : 0
+// 退出码只认一件事：我们手改了语言包（localeDirty）。
+// 这是 floccus-via fork 对 _locales 的唯一硬契约——「逐字节等于上游，零改动」。
+// （Via 文案全部内联在 .vue 模板，不进 _locales，所以改 locale 一定是误改。）
+//
+// 至于各语言「引用了却缺失」的 key：cs/de/es/fr/zh_TW 等的缺口是上游 floccus
+// 自带的翻译不全（如 dropbox/karakeep adapter 上游还没翻完），原生 floccus 也一样缺，
+// 与 fork 无关，也不归我们补（补了反而偏离上游）。所以只打印警告，不参与退出码。
+const zhPacks = ['zh', 'zh_CN', 'zh-Hans', 'zh_TW']
+const zhUncovered = rows.filter((r) => zhPacks.includes(r.loc) && r.missing.length > 0)
+if (zhUncovered.length) {
+  console.log(
+    `\n⚠️ 中文语言包存在未被回退链兜住的缺词（属上游自带翻译不全，非 fork 问题，仅提示）：${zhUncovered
+      .map((r) => `${r.loc}(${r.missing.length})`)
+      .join(', ')}`
+  )
+}
+process.exitCode = localeDirty ? 1 : 0

@@ -77,6 +77,9 @@ export interface IHtmlSerializerOptions {
   viaCompatible?: boolean
   /** Via 模式输出时用的根文件夹名；留空表示不额外包一层 */
   rootFolderName?: string
+  /** 上游 5.12 新增：解析时若节点缺 ID 也不抛错（用自增编号兜底）。
+   *  Via 模式本就没有 ID，所以走派生逻辑、天然视为放行。 */
+  allowMissingIds?: boolean
 }
 
 export const DEFAULT_OPTIONS: IHtmlSerializerOptions = { viaCompatible: false }

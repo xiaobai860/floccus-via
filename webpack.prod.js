@@ -4,13 +4,14 @@ const webpack = require('webpack')
 
 module.exports = common.map(common => merge(common, {
   mode: 'production',
-  devtool: 'source-map',
+  // The native build's maps would only bloat the app package
+  devtool: common.entry.native ? false : 'source-map',
   optimization: {
     splitChunks: { chunks: 'all' },
   },
   plugins: [
     new webpack.DefinePlugin({
-      DEBUG: JSON.stringify(false)
+      DEBUG: JSON.stringify(true)
     }),
   ]
 }))
