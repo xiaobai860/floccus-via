@@ -274,7 +274,7 @@ Via 是双向的：它既下载 `bookmarks.html` 导入，也会把自己改动�
 | `src/lib/native/I18n.ts` | 回退链由「当前包 → 英文」改成「当前包 → 同语系兜底包 → 英文」并**逐 key** 查找。现在 `zh_CN` / `zh-Hans` 缺词条会借道 `zh`，只有 `zh_TW` 直接回退英文（不把简体塞给繁体用户）。**这条回退链是我们敢让语言包零改动的前提** —— 它实测能兜住上游 `zh_CN` / `zh-Hans` 缺失的全部 16 条 |
 | `check-i18n.js` | 文案覆盖自检：扫源码里所有 `t('Xxx')` 引用，逐语言包比对该 key 是否存在。**懂得了回退链规则**：`zh_CN` / `zh-Hans` 缺但 `zh` 能兜住的词条算「回退兜底」不算缺口；`zh_TW` 不借道简体包所以它的缺口是真缺口。**新增硬约束**：末尾逐个核对 `en/zh/zh_CN/zh-Hans/zh_TW` 与上游是否逐字节一致，任何偏离直接报 FAIL |
 | `sync-upstream.js` | 跟上游前的冲突体检： fetch 后列出上游新提交/新文件，交叉比对本分支改过的 13 个文件，再用 `git merge-tree` dry-run 提前报真冲突文件，最后给出合并后固定六步。**新增（本次）** |
-| `check-official-compat.js` + `webpack.official-check.js` + `src/entries/official-compat.js` | 官方格式对等回归：**不开 Via 开关时，输出必须和官方 floccus 5.11.1 逐字节一致**。指纹写死在脚本里（`33ea98f5…` / 39147 字节）。上游一改官方序列化格式，或我们的改动不小心漫过 via 分支污染了官方路径，这脚本会立刻报 FAIL。**新增（本次）** |
+| `check-official-compat.js` + `webpack.official-check.js` + `src/entries/official-compat.js` | 官方格式对等回归：**不开 Via 开关时，输出必须和官方 floccus 逐字节一致**。指纹写死在脚本里（当前基线 `9d5ba2c0…` / 39353 字节，输入统一为仓库内 `fixtures/floccus-real.html`；2026-10-31 实测上游 v5.11.1、v5.12.0 纯净源与本 fork 三方一致）。上游一改官方序列化格式，或我们的改动不小心漫过 via 分支污染了官方路径，这脚本会立刻报 FAIL。**新增（本次）** |
 | `manifest.json` | 删掉上游的 `"default_locale": "en"`。规范规定声明它就必须配套 `_locales` 目录，而本包刻意不带 `_locales`（`_` 开头目录名会被拖 zip 安装拒绝）。运行时一次都没调 `chrome.i18n`，文案已编译进 JS，删掉这个字段不影响界面语言 |
 | `html/background.html` | 删掉写死的 `<script src="../../lib/chrome-promise.js">`。`lib/` 里从来没有这个文件，全仓库也没人用全局 `ChromePromise`，留着只会让 background 页面加载时多一条 404 |
 | `pack-for-edge.js` | 把 `dist/**` + `manifest.json` + `icons` 组装成扩展目录并打 zip（**刻意不带 `_locales`、不带构建脚本 `lib/`**，见下），同时排除测试产物 / `*.map`、把本文档拷进去。**zip 用 jszip 生成而非 `Compress-Archive`**，见第八节 |
@@ -384,8 +384,8 @@ cd floccus-src
 npx tsc src/entries/via-check.js --outDir dist/via-check-tsc \
     --module commonjs --target es2019 --esModuleInterop --allowJs --skipLibCheck
 cp package.json dist/package.json
-VIA_FILE="E:/Users/xiaom/Downloads/坚果云bookmarks.html" \
-FLOCCUS_FILE="E:/Users/xiaom/Downloads/floccus-2026-10-03.export.html" \
+VIA_FILE="fixtures/via-real.html" \
+FLOCCUS_FILE="fixtures/floccus-real.html" \
     node dist/via-check-tsc/entries/via-check.js
 rm dist/package.json
 ```
@@ -447,7 +447,7 @@ node pack-for-edge.js          # 重新打 ../floccus-via/ 与 dist-out/floccus-
 `stableId()` 用 NUL 字符拼 key，如果源码里存的是**真 NUL 字节**，git 会把整个 `.ts` 判成二进制文件 —— diff 变成一行 `Bin 3786 -> 13501 bytes`，21 个 hunk 塌成一次整体替换，同步上游时你根本看不到逐行冲突在哪。所以源码里必须写成 `\u0000`（反斜杠 + 6 个字符）而不是按一下 Ctrl+Enter 塞进去的空字节。两者运行效果完全一样，已确认改动前后 28 项回归全过。
 
 **2. `manifest.json` 的版本号冲突是必然的，别折腾。**
-上游发版会改 `version`，我这边为了商店合规把它写成 `5.11.1.0`（四段）。合并时必然打架，直接保留上游的版本号、保留我们的 `name: floccus-via` 就行，其余字段以我的为准。
+上游发版会改 `version`。打包脚本（`pack-for-edge.js`）以 `package.json` 的 version 为唯一真源、追加 `.0` 作四段号（如 5.12.0 → 5.12.0.0），上游一 bump 安装包版本自动跟随。合并时若 manifest 打架，直接保留上游的版本号、保留我们的 `name: floccus-via` 就行，其余字段以我的为准。
 
 ### 上游动了语言包怎么办
 
@@ -466,6 +466,12 @@ node pack-for-edge.js          # 重新打 ../floccus-via/ 与 dist-out/floccus-
 1. `git worktree add --detach .upstream-wt 944fc3e` 取出上游 v5.11.1 纯净源码，把 `node_modules` 做成 junction 接进去，放同一个入口、同一份输入文件；
 2. 上游原版代码跑一遍非 via 序列化 → `sha256 33ea98f5…` / 39147 字节；
 3. 本分支（含全部 Via 改造）跑同一入口 → **`sha256 33ea98f5…` / 39147 字节**。
+
+> 📌 **2026-10-31 复测**：输入改用仓库内 `fixtures/floccus-real.html`（39558 字节）后，
+> 上游 v5.11.1（`944fc3e`）、v5.12.0（`1b713bb1`）纯净源与本分支三方输出**再次逐字节一致**
+> = `9d5ba2c0…` / 39353 字节。注意**指纹强依赖输入文件**——上面 33ea98f5 是旧私有输入的值，
+> 换输入文件必须用上游纯净源重测并同步更新 `check-official-compat.js` 里的基线。
+> 当前脚本基线已固定为「fixtures 输入 → 9d5ba2c0/39353」，开箱即跑。
 
 字节数和 sha256 完全一致。开关确实有作用，两种模式输出实测不同：
 
@@ -515,7 +521,7 @@ node pack-for-edge.js          # 重新打 ../floccus-via/ 与 dist-out/floccus-
 
 这一节是「人肉确认」部分：第十一章前面的脚本都是自动的，但有几处**只有人是判断得准的**。同步上游后先跑 `node sync-upstream.js` 拿到冲突清单，再照本节逐项过。
 
-当前基线：**上游 `944fc3e`（v5.11.1，sha `944fc3eadccc455c131dd06032f2d2ca17615c21`）**。下一版基线请跟着更新这里的记录。
+当前基线：**上游 `1b713bb1`（v5.12.0，sha `1b713bb1c902374505dbdf5c26f5c2d281a8b791`）**。下一版基线请跟着更新这里的记录。
 
 ### 11.1 这份文档不会被上游覆盖（为什么放心）
 
@@ -534,7 +540,7 @@ node pack-for-edge.js          # 重新打 ../floccus-via/ 与 dist-out/floccus-
 ```bash
 cd floccus-src
 npx gulp build                 # ① TS 编译
-node check-official-compat.js   # ② 官方格式对等：必须 sha 33ea98f5… / 39147 字节
+node check-official-compat.js   # ② 官方格式对等：必须 sha 9d5ba2c0… / 39353 字节（输入 fixtures/floccus-real.html）
 node check-i18n.js              # ③ 中文四包缺 0
 node check-zip.js               # ④ zip 合规（176 条目 CRC）
 node audit-extension.js         # ⑤ 扩展合规（33 PASS / 0 FAIL）
@@ -545,8 +551,8 @@ Via 回归要带真实书签文件（脚本会 `readFileSync(undefined)` 崩掉�
 
 ```bash
 npx webpack --config webpack.via-check.js
-VIA_FILE="E:/Users/xiaom/Downloads/坚果云bookmarks.html" \
-FLOCCUS_FILE="E:/Users/xiaom/Downloads/floccus-2026-10-03.export.html" \
+VIA_FILE="fixtures/via-real.html" \
+FLOCCUS_FILE="fixtures/floccus-real.html" \
 node dist/via-check/bundle.js     # 28 项全 PASS
 ```
 
@@ -948,8 +954,8 @@ FAIL  再解析后重名文件夹 ID 仍不冲突
 
 ```bash
 npx webpack --config webpack.via-check.js
-VIA_FILE="E:/Users/xiaom/Downloads/坚果云bookmarks.html" \
-FLOCCUS_FILE="E:/Users/xiaom/Downloads/floccus-2026-10-03.export.html" \
+VIA_FILE="fixtures/via-real.html" \
+FLOCCUS_FILE="fixtures/floccus-real.html" \
   node dist/via-check/bundle.js
 ```
 
