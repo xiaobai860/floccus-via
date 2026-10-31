@@ -11,3 +11,6 @@ key.pem
 .env.sentry-build-plugin
 *.crx
 dist-out/
+
+# 用户真实书签导出等隐私测试数据，绝不入库
+fixtures/
