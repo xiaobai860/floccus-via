@@ -95,11 +95,15 @@ const main = () => {
 
   // 2) 扩展清单放到根（manifest.json 里的路径是 dist/...，所以必须放根目录）
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'))
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'))
   // 名字加 -via：和官方商店版（floccus bookmarks sync）在扩展管理页一眼能区分，
   // 也提醒自己这不是上游原版。
   manifest.name = 'floccus-via'
   manifest.short_name = 'floccus-via'
-  manifest.version = manifest.version + '.0'
+  // 版本以 package.json 为准：上游只 bump package.json（manifest.json 长期停在旧值 5.4.4），
+  // 之前从 manifest.json 取版本会一直停在 5.11.1。统一真源后，跟上上游版本即自动同步。
+  // 末尾 .0 后缀用于区分 via 变体（4 段版本号合法）。
+  manifest.version = pkg.version + '.0'
   manifest.description =
     'floccus fork：与 Via 浏览器书签双向同步（坚果云 / WebDAV 里的 bookmarks.html）'
   fs.writeFileSync(
