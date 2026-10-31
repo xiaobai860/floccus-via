@@ -6,8 +6,8 @@
  *   「不打开 Via 兼容开关时，这个 fork 产出的书签文件，和官方 floccus 逐字节一样吗？」
  *
  * 答案不是"看代码应该一样"，是量出来的：
- * 拿上游 v5.11.1 纯净源码（git worktree detached 944fc3e）跑同一个入口，
- * 与本分支跑出来的输出 sha256 完全相同（33ea98f5… / 39147 字节）。
+ * 拿上游 v5.12.0 纯净源码（git worktree detached 1b713bb1）跑同一个入口，
+ * 与本分支跑出来的输出 sha256 完全相同（9d5ba2c0… / 39353 字节）。
  *
  * 所以这里把这个指纹存成常量当基线。以后同步上游时如果跑出不一样的值，
  * 说明上游改了官方序列化格式，或者我们的改动漫过了 via 分支污染了官方路径 ——
@@ -22,14 +22,16 @@ const crypto = require('crypto')
 const path = require('path')
 const webpack = require('webpack')
 
-// 官方 floccus 5.11.1 在「非 Via 模式」下序列化 floccus 导出文件的输出指纹
-const BASELINE_SHA = '33ea98f52387b3c5960c2e6f2b78c7c72a2eecf2114a04c39e971122decdead0'
-const BASELINE_BYTES = 39147
+// 官方 floccus v5.12.0（1b713bb1）在「非 Via 模式」下序列化 floccus 导出文件的输出指纹
+// （2026-10-31 实测：上游 v5.12.0 纯净源与本 fork 输出逐字节一致，故基线随上游更新；
+//   旧基线 33ea98f5…/39147 为 v5.11.1 时代，上游 5.12.0 自己改了官方序列化格式）
+const BASELINE_SHA = '9d5ba2c0d6ef93236d91b538fb08989711062d8097836f6e7e728140cc2135b6'
+const BASELINE_BYTES = 39353
 
 const BOOKMARK_FILE =
   process.env.BOOKMARK_FILE ||
   process.env.FLOCCUS_FILE ||
-  'E:/Users/xiaom/Downloads/floccus-2026-10-03.export.html'
+  path.join(__dirname, 'fixtures', 'floccus-real.html')
 
 const BUNDLE = path.join(__dirname, 'dist', 'official-check', 'bundle.js')
 
@@ -79,7 +81,7 @@ function serializeOnce() {
 
   const results = [
     ok(buf.length === BASELINE_BYTES, `输出字节数与官方基准一致（${buf.length} / ${BASELINE_BYTES}）`),
-    ok(sha === BASELINE_SHA, `输出 sha256 与官方 floccus 5.11.1 逐字节一致`),
+    ok(sha === BASELINE_SHA, `输出 sha256 与官方 floccus v5.12.0 逐字节一致`),
   ]
 
   if (sha !== BASELINE_SHA) {

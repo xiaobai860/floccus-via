@@ -138,12 +138,13 @@ const runChecks = () => {
   }
 
   // 10) 必需文件齐全
+  // 注：不含 dist/js/native.js —— 那是 native 桌面端 bundle，浏览器扩展 manifest
+  // 不引用它，pack-for-edge.js 有意不打包（2026-10-31 核实 manifest 无 native 引用）。
   ;[
     'dist/html/options.html',
     'dist/html/background.html',
     'dist/js/background-script.js',
     'dist/js/options.js',
-    'dist/js/native.js',
     'icons/logo.png',
     'README.md',
   ].forEach(f => ok(files.has(norm(f)), `含 ${f}`))
