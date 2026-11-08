@@ -278,7 +278,7 @@ export const actionsDefinition = {
     controller.scheduleSync(accountId, true)
   },
   async [actions.IMPORT_BOOKMARKS]({ commit }, {accountId, parentFolder, html}) {
-    const folder = Html.deserialize(html, { allowMissingIds: true })
+    const folder = Html.deserialize(html)
     const account = await Account.get(accountId)
     const tree = await account.getResource()
     await Promise.all(folder.children.map(async child => {
@@ -375,6 +375,11 @@ export const actionsDefinition = {
   },
   async [actions.TEST_WEBDAV_SERVER]({commit, dispatch, state}, {rootUrl, username, password}) {
     // noop, because capacitor Http doesn't support PROPFIND
+    return true
+  },
+  async [actions.TEST_S3_SERVER]({commit, dispatch, state}, data) {
+    const S3Adapter = (await import('../../../lib/adapters/S3')).default
+    await new S3Adapter(data).testConnection()
     return true
   },
   async [actions.TEST_LINKWARDEN_SERVER]({commit, dispatch, state}, {rootUrl, token}) {

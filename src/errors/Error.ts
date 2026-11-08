@@ -548,11 +548,21 @@ export class DropboxAmbiguousFileError extends FloccusError {
   }
 }
 
-export class MissingItemIdsError extends FloccusError {
-  public readonly code = 59
+export class RemoteFileChangedError extends TransientError {
+  public readonly code = 60
   constructor() {
-    super('E059: The bookmarks file contains bookmarks or folders without an ID. Floccus can only sync bookmarks files that it created itself.')
-    Object.setPrototypeOf(this, MissingItemIdsError.prototype)
+    super('E060: The bookmarks file on the server was changed by another device during this sync. Floccus will sync again to include those changes.')
+    Object.setPrototypeOf(this, RemoteFileChangedError.prototype)
+  }
+}
+
+export class S3BucketNotFoundError extends FloccusError {
+  public readonly code = 61
+  public bucket: string
+  constructor(bucket: string) {
+    super(`E061: The S3 bucket "${bucket}" does not exist.`)
+    this.bucket = bucket
+    Object.setPrototypeOf(this, S3BucketNotFoundError.prototype)
   }
 }
 

@@ -472,6 +472,10 @@ node pack-for-edge.js          # 重新打 ../floccus-via/ 与 dist-out/floccus-
 > = `9d5ba2c0…` / 39353 字节。注意**指纹强依赖输入文件**——上面 33ea98f5 是旧私有输入的值，
 > 换输入文件必须用上游纯净源重测并同步更新 `check-official-compat.js` 里的基线。
 > 当前脚本基线已固定为「fixtures 输入 → 9d5ba2c0/39353」，开箱即跑。
+>
+> 📌 **2026-11-08 复测**：跟上 v5.13.0（`05decdc7`）后，上游纯净源与本分支**再次逐字节一致**
+> = `9d5ba2c0…` / 39353 字节。上游 5.13 改了 `Html.ts` 的解析路径（`deserializeFile`
+> + `assignDerivedIds`），但官方序列化格式未变，via 层零污染。
 
 字节数和 sha256 完全一致。开关确实有作用，两种模式输出实测不同：
 
@@ -521,7 +525,7 @@ node pack-for-edge.js          # 重新打 ../floccus-via/ 与 dist-out/floccus-
 
 这一节是「人肉确认」部分：第十一章前面的脚本都是自动的，但有几处**只有人是判断得准的**。同步上游后先跑 `node sync-upstream.js` 拿到冲突清单，再照本节逐项过。
 
-当前基线：**上游 `1b713bb1`（v5.12.0，sha `1b713bb1c902374505dbdf5c26f5c2d281a8b791`）**。下一版基线请跟着更新这里的记录。
+当前基线：**上游 `05decdc7`（v5.13.0，sha `05decdc7…`）**。下一版基线请跟着更新这里的记录。
 
 ### 11.1 这份文档不会被上游覆盖（为什么放心）
 
@@ -992,3 +996,39 @@ FLOCCUS_FILE="fixtures/floccus-real.html" \
 **⑤ 这次合并的产物提交**
 
 合并提交信息形如 `via: 跟上游 develop 至 c5810992（吸收 v5.12.0，解决 Html.ts 冲突）`。只推 `fork`（绝不 `origin`、绝不 PR）。`check-i18n.js` 的基线修复一并带进该提交。
+
+---
+
+### 11.16 真实案例：跟上 floccus v5.13.0（2026-11-08）
+
+上游 v5.13.0（`05decdc7`）在 `Html.ts` 的解析链路上动了一次结构手术，是至今**最需要小心的一次合并**：
+
+- `fix: Allow files without IDs` + `fix: Always upload file when ID assignment was mixed in the downloaded file`
+- 新增 `DerivedIds.ts`：`assignDerivedIds()` 给缺 ID 的节点派生稳定负 ID；`mustPersistDerivedIds()` 判断「文件里只有部分节点缺 ID」时要求回写
+- `Serializer` 接口新增 `deserializeFile(data): {tree, persistIds}`，`deserialize()` 变成薄壳
+- `WebDav` / `Git` / `Dropbox` / `GDrive` 全部改调 `deserializeFile`，并按 `persistIds` 设置 `alwaysUpload`（**即使同步无改动也强制重写服务器文件**）
+
+**冲突面**：恰好 2 个文件 —— `Html.ts`、`WebDav.ts`（README.md 由 keep-ours 自动保住）。`murmurhash3.ts` 上游未动 ✓。
+
+**合并决策（关键，别照抄上游）**：
+
+| 路径 | 处理方式 |
+|---|---|
+| 官方（`viaCompatible=false`） | 完整沿用上游新机制：`assignDerivedIds` + `mustPersistDerivedIds` |
+| Via（`viaCompatible=true`） | **必须 `return { tree, persistIds: false }`**，且**不调用 `assignDerivedIds`** |
+
+原因有两条，任一漏掉都会出事：
+
+1. `assignDerivedIds` 会覆盖 `parseDL` 已用 `deriveViaId()` 派生的稳定哈希 ID，Via 已有书签的映射表全乱；
+2. `persistIds: true` → `WebDav.alwaysUpload = true` → 服务器文件被按官方格式（`ID=` / `TAGS=`）重写，**手机 Via 再也读不了**。上游 `DerivedIds.ts` 注释里其实已经写明「完全无 ID 的文件（Via、Linkwarden 导出）不要回写」，我们只是把这条保证固化到 via 分支里。
+
+其余调整：`deserialize(html, options)` / `deserializeFile(html, options)` 都保留可选 options 并透传；5.12 时代的 `allowMissingIds` / `MissingItemIdsError` / `legacyIdCounter` 随上游一起退役；`WebDav` 的 html 分支改为 `Html.deserializeFile(xmlDocText, this.getHtmlSerializerOptions())`（via 参数必须继续传）。
+
+**验收结果**：
+
+- 构建通过（webpack 无 TS 报错），包版本自动跟随为 `5.13.0.0`
+- `check-official-compat` ALL PASS（`9d5ba2c0…` / 39353 字节）；拿上游 v5.13.0 纯净源 worktree 实测**逐字节一致**，证明官方路径零污染、基线无需改
+- `check-i18n` 中文五包与上游一致 / `check-zip` ALL PASS / `audit-extension` PASS 33 FAIL 0
+- ⚠️ `via-check` 28 项里 6 项 FAIL，但**合并前同输入跑也是同样 6 项、逐条一致，零新增回归**。根因是脚本断言硬编码了旧机器「一加5 / 13 个顶层 / ADD_DATE 1754285806」那份书签，而当前 `fixtures/via-real.html` 是 10-04 导的 `Bookmarks Bar` 形态（3 个顶层、无重名文件夹）。这是 10-31 把示例输入换成 fixtures 时留下的**历史欠账**，不是本次合并造成。修复条件：用户提供一份手机 Via 原生导出，再按新结构重写断言（不要改断言去迁就当前输入，那会削弱验证意义）。
+
+**下次同步必查**：`Html.ts` 里 VIA-HOOK 3/6 的 `deserializeFile` 分支是否仍返回 `persistIds: false`；上游若再改 `Serializer` 契约，先看 `alwaysUpload` 会不会波及 via。

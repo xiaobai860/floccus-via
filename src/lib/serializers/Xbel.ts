@@ -1,8 +1,9 @@
-import Serializer from '../interfaces/Serializer'
+import Serializer, { IDeserializedFile } from '../interfaces/Serializer'
 import { Bookmark, Folder, ItemLocation } from '../Tree'
 import { XMLParser, XMLBuilder } from 'fast-xml-parser'
 import Logger from '../Logger'
-import { MissingItemIdsError, XbelParseError } from '../../errors/Error'
+import { XbelParseError } from '../../errors/Error'
+import { assignDerivedIds, mustPersistDerivedIds } from './DerivedIds'
 
 class XbelSerializer implements Serializer {
   serialize(folder: Folder<typeof ItemLocation.SERVER>) {
@@ -11,7 +12,11 @@ class XbelSerializer implements Serializer {
     return xmlBuilder.build(xbelObj)
   }
 
-  deserialize(xbel: string, { allowMissingIds = false } = {}) {
+  deserialize(xbel: string): Folder<typeof ItemLocation.SERVER> {
+    return this.deserializeFile(xbel).tree
+  }
+
+  deserializeFile(xbel: string): IDeserializedFile {
     const parser = new XMLParser({
       preserveOrder: true,
       ignorePiTags: true,
@@ -36,18 +41,17 @@ class XbelSerializer implements Serializer {
 
     const rootFolder = new Folder({ id: 0, title: 'root', location: ItemLocation.SERVER })
     try {
-      this._parseFolder(xmlObj[0].xbel, rootFolder, allowMissingIds)
+      this._parseFolder(xmlObj[0].xbel, rootFolder)
     } catch (e) {
-      if (e instanceof MissingItemIdsError) {
-        throw e
-      }
       Logger.log('Parse Error: ' + e.message)
       throw new XbelParseError()
     }
-    return rootFolder
+    // Items without an id (parsed as NaN) get one derived from their content
+    const stats = assignDerivedIds(rootFolder)
+    return { tree: rootFolder, persistIds: mustPersistDerivedIds(stats) }
   }
 
-  _parseFolder(xbelObj, folder: Folder<typeof ItemLocation.SERVER>, allowMissingIds: boolean) {
+  _parseFolder(xbelObj, folder: Folder<typeof ItemLocation.SERVER>) {
     /* parse depth first */
 
     xbelObj
@@ -68,13 +72,9 @@ class XbelSerializer implements Serializer {
             parentId: folder.id,
             location: ItemLocation.SERVER,
           })
-          this._parseFolder(node.folder, item, allowMissingIds)
+          this._parseFolder(node.folder, item)
         } else {
           return
-        }
-
-        if (Number.isNaN(item.id) && !allowMissingIds) {
-          throw new MissingItemIdsError()
         }
 
         folder.children.push(item)

@@ -32,18 +32,61 @@ export function serializeTags(tags?: string[]): string | null {
 }
 
 /**
- * What the UI's search matches its terms against. Lowercasing happens here and
+ * Version of what #normalizeSearchText produces. `account_meta.search_backfilled`
+ * stores the version an account's search_text was built with, and
+ * NativeTreeQuery rebuilds it when that is older. Bump it whenever the
+ * normalization changes.
+ */
+export const SEARCH_INDEX_VERSION = 2
+
+/**
+ * What the UI's search matches its terms against. Normalization happens here and
  * not in SQL, because SQLite's lower() and LIKE only fold ASCII -- see the
  * `search_text` note in NativeDatabase.
+ * Besides lowercasing, it strips Arabic diacritics and Hebrew niqqud (optional in
+ * everyday writing) and unifies letter forms across Arabic, Persian and Urdu.
+ * Queries go through the same function, so both sides always agree.
  */
+export function normalizeSearchText(text?: string | null): string {
+  return (text ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    // Strip only Arabic harakat/Quranic marks and Hebrew niqqud/cantillation: they are
+    // optional in everyday writing. Combining marks of other scripts carry meaning
+    // (Indic vowel signs, Japanese dakuten, Latin accents) and must survive.
+    .replace(/(?=\p{M})[\u0591-\u05c7\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed]/gu, '')
+    .normalize('NFC')
+    .replace(/\u0640/g, '')
+    // Alef with madda/hamza above/below is already a bare Alef by now (NFD split
+    // the mark off and it was stripped above); Alef Wasla has no decomposition
+    .replace(/\u0671/g, '\u0627')
+    .replace(/\u0629/g, '\u0647')
+    .replace(/[\u0649\u06CC]/g, '\u064A')
+    .replace(/\u06A9/g, '\u0643')
+}
+
+export function safeDecodeURI(url?: string | null): string {
+  if (!url) {
+    return ''
+  }
+  try {
+    return decodeURI(url)
+  } catch (e) {
+    return url
+  }
+}
+
 export function folderSearchText(title?: string | null): string {
-  return (title ?? '').toLowerCase()
+  return normalizeSearchText(title)
 }
 
 export function bookmarkSearchText(bookmark: { title?: string, url?: string, tags?: string[] }): string {
-  return [bookmark.title ?? '', bookmark.url ?? '', ...(bookmark.tags || [])]
-    .join('\n')
-    .toLowerCase()
+  const url = bookmark.url ?? ''
+  const decodedUrl = safeDecodeURI(url)
+  const urlEntries = decodedUrl !== url ? [url, decodedUrl] : [url]
+  return normalizeSearchText(
+    [bookmark.title ?? '', ...urlEntries, ...(bookmark.tags || [])].join('\n')
+  )
 }
 
 export function parseTags(tags?: string | null): string[] | undefined {
@@ -140,8 +183,8 @@ export default class NativeTreeStore {
       ...this.highestIdStatements(highestId),
       {
         // Every row this batch writes carries its search_text already
-        statement: 'UPDATE account_meta SET tree_initialized = 1, search_backfilled = 1 WHERE account_id = ?',
-        values: [this.accountId],
+        statement: 'UPDATE account_meta SET tree_initialized = 1, search_backfilled = ? WHERE account_id = ?',
+        values: [SEARCH_INDEX_VERSION, this.accountId],
       },
     ])
   }
@@ -634,8 +677,8 @@ export default class NativeTreeStore {
         ...this.deleteAllStatements(),
         ...this.subtreeStatements(root, true),
         {
-          statement: 'UPDATE account_meta SET tree_initialized = 1, highest_id = ?, search_backfilled = 1 WHERE account_id = ?',
-          values: [Number.isNaN(parsedHighestId) ? 0 : parsedHighestId, this.accountId],
+          statement: 'UPDATE account_meta SET tree_initialized = 1, highest_id = ?, search_backfilled = ? WHERE account_id = ?',
+          values: [Number.isNaN(parsedHighestId) ? 0 : parsedHighestId, SEARCH_INDEX_VERSION, this.accountId],
         }
       )
       // The tree we just wrote defines the positions; don't let the numbering

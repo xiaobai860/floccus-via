@@ -131,6 +131,12 @@ export const actionsDefinition = {
     }
     return true
   },
+  async [actions.TEST_S3_SERVER]({commit, dispatch, state}, data) {
+    await dispatch(actions.REQUEST_NETWORK_PERMISSIONS)
+    const S3Adapter = (await import('../../lib/adapters/S3')).default
+    await new S3Adapter(data).testConnection()
+    return true
+  },
   async [actions.TEST_NEXTCLOUD_SERVER]({commit, dispatch, state}, rootUrl) {
     await dispatch(actions.REQUEST_NETWORK_PERMISSIONS)
     let res = await fetch(`${rootUrl}/index.php/login/v2`, {method: 'POST', headers: {'User-Agent': 'Floccus bookmarks sync'}})
@@ -221,6 +227,14 @@ export const actionsDefinition = {
       await browser.permissions.request({ permissions: ['history'] })
     } catch (e) {
       console.warn(e)
+    }
+  },
+  async [actions.REQUEST_NOTIFICATION_PERMISSIONS]() {
+    try {
+      return await browser.permissions.request({ permissions: ['notifications'] })
+    } catch (e) {
+      console.warn(e)
+      return false
     }
   },
 }

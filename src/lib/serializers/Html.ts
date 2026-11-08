@@ -1,4 +1,4 @@
-import Serializer from '../interfaces/Serializer'
+import Serializer, { IDeserializedFile } from '../interfaces/Serializer'
 import { Bookmark, Folder, ItemLocation, TItem } from '../Tree'
 import * as cheerio from 'cheerio'
 // Via 兼容层的全部逻辑（哈希稳定 ID、ADD_DATE 缓存、根包装识别、文件头、转义）
@@ -19,8 +19,9 @@ import {
   textEncode,
 } from './HtmlVia'
 
-// 上游 5.12 新增：解析官方 HTML 时若节点缺 ID 则抛错（allowMissingIds 模式可放行）
-import { MissingItemIdsError } from '../../errors/Error'
+// 上游 5.13 新增：官方路径在树解析完成后给缺 ID 的节点派生稳定负 ID，
+// 并按「是否只有部分节点缺 ID」决定是否回写文件。Via 路径不走这套（见 3/6）。
+import { assignDerivedIds, mustPersistDerivedIds } from './DerivedIds'
 
 // 保持对外类型导出不变（WebDav 等调用方按名字引用）
 export type { IHtmlSerializerOptions }
@@ -110,30 +111,38 @@ class HtmlSerializer implements Serializer {
       .join('')
   }
 
-  /* VIA-HOOK 3/6 参数新增 + 每次解析重置根名兜底（不重置会让上一次的根名串到下一棵树）。详见 HtmlVia.ts */
+  /* VIA-HOOK 3/6 参数新增 + 每次解析重置根名兜底（不重置会让上一次的根名串到下一棵树）。详见 HtmlVia.ts
+   * 上游 5.13：官方把 deserialize 拆成 deserialize(html) + deserializeFile(html): {tree, persistIds}。
+   * 这里把两个签名并在一起：deserialize 保留 options 并转发，deserializeFile 也接受 options。 */
   deserialize(html, options: IHtmlSerializerOptions = {}): Folder<typeof ItemLocation.SERVER> {
+    return this.deserializeFile(html, options).tree
+  }
+
+  deserializeFile(html, options: IHtmlSerializerOptions = {}): IDeserializedFile {
     const opts = { ...DEFAULT_OPTIONS, ...options }
     const { items, rootName } = parseByString(html, opts)
     items.forEach(f => { f.parentId = '0' })
     setLastRootFolderName(rootName || '')
-    if (rootName) {
-      const root = new Folder({
-        id: '0',
-        title: 'root',
-        children: items,
-        location: ItemLocation.SERVER,
-        isRoot: true,
-      })
-      root.viaRootName = rootName
-      return root
-    }
-    return new Folder({
+    const root = new Folder({
       id: '0',
       title: 'root',
       children: items,
       location: ItemLocation.SERVER,
       isRoot: true,
     })
+    if (rootName) root.viaRootName = rootName
+
+    if (opts.viaCompatible) {
+      // Via 导出没有 ID，parseDL 已用 deriveViaId() 给每个节点派生好稳定哈希 ID。
+      // 绝不能让上游 assignDerivedIds 覆盖它们，也不能上报 persistIds=true：
+      // WebDav 会据此设置 alwaysUpload，把 Via 文件按官方格式（ID=/TAGS=）重写，
+      // 手机 Via 就再也读不了了。Via 文件保持原样，每次同步由哈希重建 ID。
+      return { tree: root, persistIds: false }
+    }
+
+    // 官方路径：完整沿用上游 5.13 的派生 ID + 条件回写机制
+    const stats = assignDerivedIds(root)
+    return { tree: root, persistIds: mustPersistDerivedIds(stats) }
   }
 }
 
@@ -173,11 +182,12 @@ export const getRootFolder = (body: cheerio.Cheerio<any>) => {
   return body.children('dl').first()
 }
 
-/* VIA-HOOK 4/6 参数新增。根包装拍平用 HtmlVia.findSingleRootFolder，判定逻辑在那边。详见 HtmlVia.ts */
+/* VIA-HOOK 4/6 参数新增。根包装拍平用 HtmlVia.findSingleRootFolder，判定逻辑在那边。详见 HtmlVia.ts
+ * 上游 5.13 移除了 allowMissingIds / MissingItemIdsError（改为树完成后统一派生 ID），
+ * 这里同步移除该兜底；Via 路径本来就不依赖它。 */
 export const parseByString = (content: string, options: IHtmlSerializerOptions = {}) => {
   const opts = { ...DEFAULT_OPTIONS, ...options }
   const via = Boolean(opts.viaCompatible)
-  const allowMissingIds = Boolean(opts.allowMissingIds)
   const $ = cheerio.load(content)
 
   const body = $('body')
@@ -217,25 +227,13 @@ export const parseByString = (content: string, options: IHtmlSerializerOptions =
     const title = typeof eq0.text() !== 'undefined' ? eq0.text() : ''
     const addDate = parseInt(eq0.attr('add_date'), 10)
     const idAttr = eq0.attr('id')
-    let id: string | number
-    if (idOverride !== undefined) {
-      // Via 派生 ID（VIA-HOOK 5/6）：优先用上层传下来的稳定哈希
-      id = idOverride
-    } else if (idAttr) {
-      id = idAttr
-    } else if (allowMissingIds || via) {
-      // allowMissingIds：上游 5.12 放行缺 ID 的官方文件；
-      // via：原生 Netscape 本就没有 ID，走自增兜底（与存量账号行为一致）
-      id = legacyIdCounter++
-    } else {
-      // Ids are what the mappings refer to; numbering items by their position
-      // would point them at other items as soon as the file is edited elsewhere
-      throw new MissingItemIdsError()
-    }
+    // 官方 5.13：缺 ID 不再抛错，留 undefined，由 deserializeFile → assignDerivedIds
+    // 在整棵树完成后派生稳定负 ID；Via：优先用 parseDL 传下来的派生哈希 ID。
+    const id = idOverride !== undefined ? idOverride : (idAttr || undefined)
 
     // Via / 原生 Netscape 格式用 ADD_DATE 记录添加时间；记下来，回写时原样带出，
     // 这样同一棵树每次写出的字节都完全一致，不会在下一轮同步里被误判成「服务端变了」。
-    if (!Number.isNaN(addDate)) {
+    if (id !== undefined && !Number.isNaN(addDate)) {
       rememberDateAdded(String(id), addDate)
     }
 
@@ -293,6 +291,3 @@ export const parseByString = (content: string, options: IHtmlSerializerOptions =
 
   return { items: root, rootName }
 }
-
-// 非 Via 模式下沿用原实现的自增编号，保证存量账号行为不变
-let legacyIdCounter = 1

@@ -40,10 +40,17 @@
  *          官方   <A HREF="u" ID="x" TAGS="y">t</A>
  *          Via    <A HREF="u" ADD_DATE="d">t</A>          （文件夹行补 ADD_DATE）
  *
- *  3/6  deserialize(html, options)          参数新增，外加每次解析调用
- *        setLastRootFolderName(rootName || '') 重置兜底值。
+ *  3/6  deserialize(html, options) / deserializeFile(html, options)
+ *        参数新增，外加每次解析调用 setLastRootFolderName(rootName || '') 重置兜底值。
  *        为什么必须重置：否则上一个账号 / 上一份文件读到的根名会残留，
  *        让 serialize 给一棵无关的树错误地包上别人的根文件夹。
+ *
+ *        ⚠️ 上游 v5.13.0 把官方 serialize 拆成 deserialize() + deserializeFile()
+ *        （后者返回 {tree, persistIds}，persistIds 会让 WebDav 设 alwaysUpload
+ *        从而无条件重写服务器文件）。合并时务必保留这两点：
+ *          · via 路径必须返回 persistIds: false —— 否则 Via 文件会被按官方格式重写；
+ *          · via 路径不能调用 assignDerivedIds —— 否则会覆盖 deriveViaId 的稳定哈希。
+ *        官方路径则完整沿用上游的 assignDerivedIds + mustPersistDerivedIds。
  *
  *  4/6  parseByString(content, options)     参数新增。下面的根包装拍平判定
  *        走本文件 findSingleRootFolder()，逻辑在这边不在上游那边。
@@ -77,9 +84,6 @@ export interface IHtmlSerializerOptions {
   viaCompatible?: boolean
   /** Via 模式输出时用的根文件夹名；留空表示不额外包一层 */
   rootFolderName?: string
-  /** 上游 5.12 新增：解析时若节点缺 ID 也不抛错（用自增编号兜底）。
-   *  Via 模式本就没有 ID，所以走派生逻辑、天然视为放行。 */
-  allowMissingIds?: boolean
 }
 
 export const DEFAULT_OPTIONS: IHtmlSerializerOptions = { viaCompatible: false }

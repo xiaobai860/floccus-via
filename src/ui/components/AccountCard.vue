@@ -66,7 +66,7 @@
             <template v-if="account.data.error">
               <v-btn
                 :color="statusType"
-                class="float-right ml-1 mt-1"
+                class="float-end ms-1 mt-1"
                 x-small
                 target="_blank"
                 href="https://github.com/floccusaddon/floccus/issues">
@@ -74,7 +74,7 @@
               </v-btn>
               <v-btn
                 :color="statusType"
-                class="float-right ml-1 mt-1"
+                class="float-end ms-1 mt-1"
                 x-small
                 target="_blank"
                 href="https://floccus.org/faq/">
@@ -82,7 +82,7 @@
               </v-btn>
               <v-btn
                 :color="statusType"
-                class="float-right ml-1 mt-1"
+                class="float-end ms-1 mt-1"
                 x-small
                 @click="onGetLogs">
                 {{ t('LabelDebuglogs') }}
@@ -91,7 +91,7 @@
             <template v-if="needsAuthorization">
               <v-btn
                 :color="statusType"
-                class="float-right ml-1 mt-1"
+                class="float-end ms-1 mt-1"
                 x-small
                 :to="{
                   name: routes.ACCOUNT_OPTIONS,
@@ -104,7 +104,7 @@
             <template v-if="status === 'scheduled'">
               <v-btn
                 :color="statusType"
-                class="float-right"
+                class="float-end"
                 x-small
                 @click="onForceSync">
                 {{ t('LabelScheduledforcesync') }}
@@ -147,7 +147,7 @@
             </v-col>
             <v-col class="d-flex flex-row justify-end account-card__actions">
               <v-btn
-                class="ma-1 ml-0"
+                class="ma-1 ms-0"
                 small
                 :disabled="account.data.syncing || account.data.scheduled"
                 :title="t('LabelSyncDownOnce')"
@@ -182,7 +182,7 @@
               </v-btn>
               <v-btn
                 v-else
-                class="ma-1 mr-0"
+                class="ma-1 me-0"
                 small
                 :title="t('LabelCancelsync')"
                 :aria-label="t('LabelCancelsync')"
@@ -225,6 +225,7 @@ export default {
         authorize: '#8e6739',
         syncing: '#2196F3',
         scheduled: '#2196F3',
+        pending: '#d32f2f',
       },
       statusIcons: {
         disabled: 'mdi-sync-off',
@@ -233,6 +234,7 @@ export default {
         authorize: 'mdi-login-variant',
         syncing: 'mdi-sync',
         scheduled: 'mdi-timer-sync-outline',
+        pending: 'mdi-alert-circle-outline',
       },
       statusLabels: {
         disabled: this.t('StatusDisabled'),
@@ -241,6 +243,7 @@ export default {
         authorize: this.t('StatusAuthorizationneeded'),
         syncing: this.t('StatusSyncing'),
         scheduled: this.t('StatusScheduled'),
+        pending: this.t('StatusNeedssync'),
       },
       strategyIcons: {
         slave: 'mdi-arrow-down-bold',
@@ -289,6 +292,9 @@ export default {
       if (this.account.data.error) {
         return 'error'
       }
+      if (this.account.data.pendingChanges) {
+        return 'pending'
+      }
       if (
         !this.account.data.enabled &&
         !this.account.data.syncIntervalEnabled &&
@@ -313,6 +319,9 @@ export default {
       }
       if (this.account.data.error) {
         return 'error'
+      }
+      if (this.status === 'pending') {
+        return 'warning'
       }
       return 'info'
     },
@@ -341,6 +350,12 @@ export default {
       }
       if (this.account.data.scheduled) {
         return this.t('DescriptionSyncscheduled')
+      }
+      if (this.status === 'pending') {
+        const pending = this.account.data.pendingChanges
+        return pending.initial
+          ? this.t('DescriptionPendingInitialSync')
+          : this.t('DescriptionPendingChanges', [String(pending.local), String(pending.server)])
       }
       if (this.account.data.lastSync) {
         return this.t('StatusLastsynced', [
@@ -435,8 +450,8 @@ export default {
   .account-card__actions {
     flex-direction: column !important;
   }
-  .account-card__actions .ml-0 {
-    margin-left: 4px !important;
+  .account-card__actions .ms-0 {
+    margin-inline-start: 4px !important;
   }
   .account-card__options {
     flex-direction: column !important;

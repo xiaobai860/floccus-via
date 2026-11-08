@@ -8,7 +8,7 @@
  * 答案不是"看代码应该一样"，是量出来的：
  * 拿上游纯净源（git worktree detached）+ 同一份输入跑同一个入口，
  * 与本分支跑出来的输出 sha256 完全相同（当前基线 9d5ba2c0… / 39353 字节，
- * 输入 fixtures/floccus-real.html；v5.11.1 与 v5.12.0 纯净源实测一致）。
+ * 输入 fixtures/floccus-real.html；v5.11.1、v5.12.0、v5.13.0 纯净源实测一致）。
  *
  * 所以这里把这个指纹存成常量当基线。以后同步上游时如果跑出不一样的值，
  * 说明上游改了官方序列化格式，或者我们的改动漫过了 via 分支污染了官方路径 ——
@@ -16,7 +16,7 @@
  *
  * 用法：
  *   node check-official-compat.js
- *   BOOKMARK_FILE="E:/Users/xiaom/Downloads/floccus-2026-10-03.export.html" node check-official-compat.js
+ *   BOOKMARK_FILE="其它导出文件.html" node check-official-compat.js
  */
 
 const crypto = require('crypto')
@@ -25,8 +25,8 @@ const webpack = require('webpack')
 
 // 官方 floccus 在「非 Via 模式」下序列化 floccus 导出文件的输出指纹
 // 基线（2026-10-31 重测）：输入统一为仓库内 fixtures/floccus-real.html（39558 字节），
-// 实测上游 v5.11.1（944fc3e）、v5.12.0（1b713bb1）纯净源与本 fork 三方输出逐字节一致
-// = 9d5ba2c0… / 39353 字节，官方格式自 v5.11.1 以来未变。
+// 实测上游 v5.11.1（944fc3e）、v5.12.0（1b713bb1）、v5.13.0（05decdc7）纯净源
+// 与本 fork 四方输出逐字节一致 = 9d5ba2c0… / 39353 字节，官方格式自 v5.11.1 以来未变。
 // 旧基线 33ea98f5… / 39147 字节对应旧机器私有输入文件（E 盘导出），已退役；
 // 指纹强依赖输入文件——换输入必须用上游纯净源重测并同步更新这里。
 const BASELINE_SHA = '9d5ba2c0d6ef93236d91b538fb08989711062d8097836f6e7e728140cc2135b6'
@@ -85,7 +85,7 @@ function serializeOnce() {
 
   const results = [
     ok(buf.length === BASELINE_BYTES, `输出字节数与官方基准一致（${buf.length} / ${BASELINE_BYTES}）`),
-    ok(sha === BASELINE_SHA, `输出 sha256 与官方 floccus v5.12.0 逐字节一致`),
+    ok(sha === BASELINE_SHA, `输出 sha256 与官方 floccus 逐字节一致（基线至 v5.13.0）`),
   ]
 
   if (sha !== BASELINE_SHA) {

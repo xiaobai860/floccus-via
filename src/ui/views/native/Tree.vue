@@ -6,12 +6,12 @@
       app>
       <v-app-bar-nav-icon
         v-if="!folderTree || !currentFolder || currentFolderId === folderTree.id"
-        class="mr-2 ml-n2"
+        class="me-2 ms-n2"
         @click="drawer = !drawer" />
       <v-btn
         v-else
         icon
-        class="mr-2 ml-n2"
+        class="me-2 ms-n2"
         :aria-label="t('LabelBack')"
         @click="goBack">
         <v-icon aria-hidden="true">
@@ -178,7 +178,7 @@
           <v-chip
             v-for="tag in folderTags"
             :key="tag"
-            class="tag-bar__chip mr-2"
+            class="tag-bar__chip me-2"
             small
             label
             color="blue darken-1"
@@ -211,7 +211,7 @@
         {{ t('DescriptionSyncscheduled') }}
         <v-btn
           color="info"
-          class="float-right"
+          class="float-end"
           x-small
           @click="onForceSync">
           {{ t('LabelScheduledforcesync') }}
@@ -407,7 +407,7 @@ import sortBy from 'lodash/sortBy'
 import DialogImportBookmarks from '../../components/native/DialogImportBookmarks'
 import Breadcrumbs from '../../components/native/Breadcrumbs.vue'
 import Item from '../../components/native/Item.vue'
-import { formatSearchToken, parseSearchQuery } from '../../../lib/native/NativeTreeQuery'
+import { formatSearchToken, normalizeSearchText, parseSearchQuery } from '../../../lib/native/NativeTreeQuery'
 
 export default {
   name: 'Tree',
@@ -768,7 +768,7 @@ export default {
       }, 500)
     },
     isActiveTag(tag) {
-      return this.activeTags.includes(tag.toLowerCase())
+      return this.activeTags.includes(normalizeSearchText(tag))
     },
     searchByTag(tag) {
       this.setTagSearch(tag, true)
@@ -783,11 +783,11 @@ export default {
      */
     setTagSearch(tag, on) {
       clearTimeout(this.searchDebounceTimer)
-      const lower = tag.toLowerCase()
+      const normalized = normalizeSearchText(tag)
       const { tags, terms } = parseSearchQuery(this.searchQuery)
       const nextTags = on
-        ? (tags.includes(lower) ? tags : [...tags, lower])
-        : tags.filter((candidate) => candidate !== lower)
+        ? (tags.includes(normalized) ? tags : [...tags, normalized])
+        : tags.filter((candidate) => candidate !== normalized)
       this.searchQuery = [
         ...nextTags.map((candidate) => formatSearchToken(candidate, true)),
         ...terms.map((term) => formatSearchToken(term, false)),
@@ -979,7 +979,7 @@ export default {
   position: absolute;
   font-size: 0.45em;
   top: 30px;
-  left: 30px;
+  inset-inline-start: 30px;
 }
 
 .list-full-height {

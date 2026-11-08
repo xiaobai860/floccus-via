@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "floccus bookmarks sync",
   "short_name": "floccus",
-  "version": "5.12.0",
+  "version": "5.13.0",
   "description": "__MSG_DescriptionExtension__",
   "icons": {
     "48": "icons/logo.png",
@@ -24,7 +24,7 @@
   "default_locale": "en",
 
   "permissions": ["*://*/*", "alarms", "bookmarks", "storage", "unlimitedStorage", "tabs", "tabGroups", "identity"],
-  "optional_permissions": ["history"],
+  "optional_permissions": ["history", "notifications"],
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';",
 
   "options_ui": {
