@@ -566,7 +566,7 @@ node dist/via-check/bundle.js     # 28 项全 PASS
 
 | # | 位置 | 上游动了会怎样 | 怎么确认 | 怎么办 |
 |---|---|---|---|---|
-| **P1-1** | `src/lib/murmurhash3.ts` | **最危险。** `HtmlVia.ts:28` 直接 `import { murmurhash3_32_gc } from '../murmurhash3'`，配上我们自己的双 seed `0x5eeda11` / `0x5eedb22` 生成 Via 稳定 ID。这个文件的算法输出一变，手机 Via 上**已有全部书签的 ID 会被重新算一遍** → 同步时整棵树被判成"全变了"，书签位置会乱、触发全量重建 | `git diff origin/develop -- src/lib/murmurhash3.ts` 看是不是空 | murmur 是标准算法，正常不会动。真动了就保留上游版（我们本来就没改它），但**同步后必须实地完整跑一次双向同步**，确认 Via 端书签没跑位 |
+| **P1-1** | `src/lib/murmurhash3.js` | **最危险。** `HtmlVia.ts:28` 直接 `import { murmurhash3_32_gc } from '../murmurhash3'`，配上我们自己的双 seed `0x5eeda11` / `0x5eedb22` 生成 Via 稳定 ID。这个文件的算法输出一变，手机 Via 上**已有全部书签的 ID 会被重新算一遍** → 同步时整棵树被判成"全变了"，书签位置会乱、触发全量重建 | `git diff origin/develop -- src/lib/murmurhash3.js` 看是不是空 | murmur 是标准算法，正常不会动。真动了就保留上游版（我们本来就没改它），但**同步后必须实地完整跑一次双向同步**，确认 Via 端书签没跑位 |
 | **P1-2** | `src/lib/serializers/Html.ts` | 我们的 6 个 `VIA-HOOK` 全在这。上游改 `serialize()` / `_serializeFolder()` / `parseDL()` 主体会打架 | `grep -n VIA-HOOK src/lib/serializers/Html.ts` 必须还是 **6 个**，而且顺序别乱 | 除这 6 处，其它冲突**一律接受上游版本**；只把 `if (via)` 分支并排贴回去 |
 | **P1-3** | `src/lib/adapters/WebDav.ts` | Via 的两个配置挂在这：`via_compatible` / `via_root_folder`（51、53 行的默认值）+ `getHtmlSerializerOptions()`（96 行）里的短路 `if (!data.via_compatible) return { viaCompatible: false }` | 上游改了 `getDefaultValues` / `getHtmlSerializerOptions` 的签名 | 把我们的两段并回去。**这条短路必须还在**，否则不开 Via 开关也会走兼容路径 |
 | **P1-4** | `manifest.json` | `version` 冲突是必然的（上游发版会改，`name` 是我们自己的） | `version` 跟 `name` 同时出现在 diff 里 | 保留上游版本号 + 我们的 `name: floccus-via`；顺手确认 **`tabGroups` 权限还在**（是我们补的，官方 Chrome manifest 有，缺了标签页分组整片拿不到） |
@@ -627,7 +627,7 @@ grep -n VIA-COMPAT    src/ui/views/NewAccount.vue            # 必须 2
 grep -n "VIA-HIDE\|VIA-NOTE" src/ui/components/OptionsWebdav.vue   # 各 1
 grep -n via_compatible src/lib/adapters/WebDav.ts             # 兜底必须还在
 grep -n tabGroups     manifest.json                           # 必须在
-git diff origin/develop -- src/lib/murmurhash3.ts             # 必须为空
+git diff origin/develop -- src/lib/murmurhash3.js             # 必须为空
 
 # 红线自查：绝不能往上游提 PR
 node sync-upstream.js 2>&1 | head -2
@@ -929,7 +929,7 @@ node check-official-compat.js            # ③ 官方 sha 必须仍是 33ea98f5�
 **同步结果（`96a9c8d3`）**：
 
 - Via 核心文件**一个都没被动**：`Html.ts` 的 6 个 VIA-HOOK 原样、`HtmlVia.ts` 在、`OptionsWebdav.vue` Via 卡片在、`NewAccount.vue` 勾选框在
-- `src/lib/murmurhash3.ts` / `src/lib/Caching.ts` / `_locales` 五包与上游**零 diff**（最高危点 + 语言包都没碰）
+- `src/lib/murmurhash3.js` / `src/lib/Caching.ts` / `_locales` 五包与上游**零 diff**（最高危点 + 语言包都没碰）
 - `check-official-compat` ALL PASS（sha `33ea98f5` / 39147 字节）—— 不开 Via 开关时输出与官方逐字节一致
 - Via 回归 **28 项 ALL PASS**（真实文件 `坚果云bookmarks.html` + floccus 导出）
 - `audit-extension` 33 PASS / 0 FAIL；`check-zip` 182 条目 CRC 通过
@@ -1008,7 +1008,7 @@ FLOCCUS_FILE="fixtures/floccus-real.html" \
 - `Serializer` 接口新增 `deserializeFile(data): {tree, persistIds}`，`deserialize()` 变成薄壳
 - `WebDav` / `Git` / `Dropbox` / `GDrive` 全部改调 `deserializeFile`，并按 `persistIds` 设置 `alwaysUpload`（**即使同步无改动也强制重写服务器文件**）
 
-**冲突面**：恰好 2 个文件 —— `Html.ts`、`WebDav.ts`（README.md 由 keep-ours 自动保住）。`murmurhash3.ts` 上游未动 ✓。
+**冲突面**：恰好 2 个文件 —— `Html.ts`、`WebDav.ts`（README.md 由 keep-ours 自动保住）。`murmurhash3.js` 上游未动 ✓。
 
 **合并决策（关键，别照抄上游）**：
 

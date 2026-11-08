@@ -73,7 +73,7 @@
  *
  *  ⚠️ 最高危的外部依赖：deriveViaId() 用了 ../murmurhash3（上游文件）。
  *     同步后第一件事就是确认它没被改动：
- *       git diff origin/develop -- src/lib/murmurhash3.ts   # 必须为空
+ *       git diff origin/develop -- src/lib/murmurhash3.js   # 必须为空
  *     改了就意味着手机上 Via 已有全部书签的 ID 会重算，整棵树会被判成"全变了"。
  */
 import * as cheerio from 'cheerio'
