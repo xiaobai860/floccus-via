@@ -251,11 +251,14 @@ export const parseByString = (content: string, options: IHtmlSerializerOptions =
       case 'a':
         // site
         const url = eq0.attr('href') || ''
-        // 上游 5.14.0 之后的修复：解析 TAGS 属性。文件里没有 TAGS 就等于没有标签，
-        // 不该是 undefined（"未知"），否则「删掉最后一个标签」这个动作无法同步到另一端。
-        // Via 路径同样受益：via 写出会带 TAGS，读的时候必须认回来，否则来回一轮就丢标签。
-        const tags = (eq0.attr('tags') || '').split(',')
-        return new Bookmark({ id, title, url, parentId, tags, location: ItemLocation.SERVER })
+        // 注意：这里刻意**不**解析 TAGS 属性，与官方 v5.14.0 保持零差异。
+        // 上游在 develop 上已加 `tags: (eq0.attr('tags')||'').split(',')`，
+        // 但那属于官方路径的行为变更（官方 5.14.0 发布点尚无此行），单独采纳会
+        // 让我们的官方路径比官方原版多一个功能，违反「不开 Via 即与原版无差异」。
+        // 且上游真正修好「删掉最后一个标签传不到另一端」还需同时把
+        // Caching.supportsTags 改成 true（develop 尖端），两者要一起采纳才有意义。
+        // 见 README.via.md 与项目 MEMORY.md 的「最小改动 + 官方零差异」红线。
+        return new Bookmark({ id, title, url, parentId, location: ItemLocation.SERVER })
       default:
         return null
     }
