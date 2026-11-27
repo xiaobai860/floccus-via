@@ -139,14 +139,17 @@ for (const r of rows) {
   )
 }
 
-// 本分支的硬约束：_locales 必须与【当前同步的上游 origin/develop】逐字节一致（零改动）。
-// 任何语言包偏离「当前上游」都意味着我们不小心手改了 locale，必须 FAIL。
-// 注意：基线用 origin/develop 而非冻结的某个 commit —— 因为每同步一次上游，
-// 上游自己可能新增翻译 key（如 dropbox/karakeep adapter），此时 locale 会随上游一起变，
-// 这是预期内的「跟上上游」，不算冲突面回归。对比旧基线 944fc3e 反而会产生误报。
-console.log('\n=== 语言包是否偏离当前上游 origin/develop（floccus-via 硬约束：必须零改动）===')
+// 本分支的硬约束：_locales 必须与【本次同步的那个上游 commit】逐字节一致（零改动）。
+// 任何语言包偏离「该上游基线」都意味着我们不小心手改了 locale，必须 FAIL。
+//
+// 为什么不用 origin/develop 尖端作基线：尖端比「本次实际合并的版本」更新
+// （例如我们跟到 v5.14.0 发布点 366a3e83，而 develop 尖端又多了 donation/tabs 等
+// 新 key）。此时我们少的那几十行不是「手改了 locale」，而是「还没跟到那个尖端」，
+// 用尖端当基线会误报 FAIL，把「同步进度」错判成「手改语言包」。
+// 每次同步完上游，把 SYNCED_UPSTREAM_BASE 更新成刚合并的那个 commit 即可。
+console.log('\n=== 语言包是否偏离本次同步的上游基线（floccus-via 硬约束：必须零改动）===')
 const LOCALE_ZERO_DIFF = ['en', 'zh', 'zh_CN', 'zh-Hans', 'zh_TW']
-const UPSTREAM_BASE = 'origin/develop'
+const UPSTREAM_BASE = process.env.SYNCED_UPSTREAM_BASE || '366a3e83'
 let localeDirty = false
 for (const loc of LOCALE_ZERO_DIFF) {
   const f = path.join(LOCALES, loc, 'messages.json')
@@ -158,9 +161,9 @@ for (const loc of LOCALE_ZERO_DIFF) {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],
       })
-  } catch (e) {
+    } catch (e) {
     /* 取不到上游基线就跳过校验，不误报 */
-    console.log(`  ? ${loc.padEnd(9)} 取不到上游基线（先 git fetch origin develop），跳过比对`)
+    console.log(`  ? ${loc.padEnd(9)} 取不到上游基线 ${UPSTREAM_BASE}，跳过比对`)
     continue
   }
   const norm = (s) => s.replace(/\r\n/g, '\n').trim()
@@ -169,8 +172,8 @@ for (const loc of LOCALE_ZERO_DIFF) {
   console.log(`  ${same ? '✅' : '❌'} ${loc.padEnd(9)} ${same ? '与上游一致' : '已被改动'}`)
 }
 if (localeDirty) {
-  console.log('  ❌ 有语言包偏离上游。floccus-via 的 Via 文案全部内联在 .vue 模板里，')
-  console.log('     不依赖 _locales —— 请把它恢复到 origin/develop 的上游版本（git checkout origin/develop -- _locales/<lang>）。')
+  console.log(`  ❌ 有语言包偏离上游基线 ${UPSTREAM_BASE}。floccus-via 的 Via 文案全部内联在 .vue 模板里，`)
+  console.log(`     不依赖 _locales —— 请把它恢复到该上游版本（git checkout ${UPSTREAM_BASE} -- _locales/<lang>）。`)
 }
 
 // 退出码只认一件事：我们手改了语言包（localeDirty）。

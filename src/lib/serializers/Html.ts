@@ -251,7 +251,11 @@ export const parseByString = (content: string, options: IHtmlSerializerOptions =
       case 'a':
         // site
         const url = eq0.attr('href') || ''
-        return new Bookmark({ id, title, url, parentId, location: ItemLocation.SERVER })
+        // 上游 5.14.0 之后的修复：解析 TAGS 属性。文件里没有 TAGS 就等于没有标签，
+        // 不该是 undefined（"未知"），否则「删掉最后一个标签」这个动作无法同步到另一端。
+        // Via 路径同样受益：via 写出会带 TAGS，读的时候必须认回来，否则来回一轮就丢标签。
+        const tags = (eq0.attr('tags') || '').split(',')
+        return new Bookmark({ id, title, url, parentId, tags, location: ItemLocation.SERVER })
       default:
         return null
     }
